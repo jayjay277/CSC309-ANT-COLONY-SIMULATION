@@ -3,9 +3,10 @@ import math
 import random
 import time
 from PIL import Image, ImageDraw, ImageFilter
+import io  # ← NEW: Required for reliable image rendering on Streamlit Cloud
 
 # ─────────────────────────────────────────
-#  PAGE CONFIG
+# PAGE CONFIG
 # ─────────────────────────────────────────
 st.set_page_config(
     page_title="ACO Simulator — EkehFJ",
@@ -15,45 +16,39 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────
-#  CSS
+# CSS (unchanged)
 # ─────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
-
 :root {
-  --bg:      #080c14;
+  --bg: #080c14;
   --surface: #0f1623;
-  --surf2:   #161e2e;
-  --border:  rgba(94,234,212,.15);
-  --accent:  #5eead4;
+  --surf2: #161e2e;
+  --border: rgba(94,234,212,.15);
+  --accent: #5eead4;
   --accent3: #a78bfa;
-  --danger:  #f43f5e;
-  --green:   #22c55e;
-  --amber:   #f59e0b;
-  --muted:   #64748b;
-  --radius:  14px;
+  --danger: #f43f5e;
+  --green: #22c55e;
+  --amber: #f59e0b;
+  --muted: #64748b;
+  --radius: 14px;
 }
-
 .stApp { background: var(--bg) !important; }
 .stDeployButton { display: none !important; }
-#MainMenu       { visibility: hidden !important; }
-footer          { visibility: hidden !important; }
-
+#MainMenu { visibility: hidden !important; }
+footer { visibility: hidden !important; }
 section[data-testid="stSidebar"] {
   background: var(--surface) !important;
   border-right: 1px solid var(--border) !important;
 }
-
 .block-container {
   padding-top: 3.5rem !important;
   padding-left: 1.2rem !important;
   padding-right: 1.2rem !important;
   max-width: 100% !important;
 }
-
 h1,h2,h3,h4 { font-family:'Syne',sans-serif !important; color:var(--accent) !important; }
-
 div[data-testid="stButton"] button {
   width: 100% !important;
   border-radius: 8px !important;
@@ -64,7 +59,6 @@ div[data-testid="stButton"] button {
   transition: all .2s !important;
   padding: 0.45rem 0.5rem !important;
 }
-
 .btn-reset button {
   background: transparent !important;
   border: 1.5px solid #f43f5e !important;
@@ -92,7 +86,6 @@ div[data-testid="stButton"] button {
   background: rgba(245,158,11,.22) !important;
   box-shadow: 0 0 14px rgba(245,158,11,.35) !important;
 }
-
 [data-testid="stImage"] img {
   border-radius: 12px !important;
   border: 1px solid var(--border) !important;
@@ -100,7 +93,6 @@ div[data-testid="stButton"] button {
   width: 100% !important;
   height: auto !important;
 }
-
 .eff-bar-wrap {
   background: rgba(15,22,36,.8);
   border: 1px solid var(--border);
@@ -114,7 +106,6 @@ div[data-testid="stButton"] button {
   border-radius: 99px;
   background: linear-gradient(90deg, var(--accent3), var(--accent));
 }
-
 .badge {
   display: inline-block;
   padding: 2px 10px;
@@ -124,78 +115,74 @@ div[data-testid="stButton"] button {
   letter-spacing: .08em;
   text-transform: uppercase;
 }
-.badge-run  { background:rgba(34,197,94,.15);  color:#22c55e; border:1px solid #22c55e; }
+.badge-run { background:rgba(34,197,94,.15); color:#22c55e; border:1px solid #22c55e; }
 .badge-idle { background:rgba(100,116,139,.15); color:var(--muted); border:1px solid var(--muted); }
-
 .stat-panel { display:flex; flex-direction:column; gap:8px; }
 details summary::-webkit-details-marker { display:none; }
-
 @media (max-width:900px) {
   .block-container { padding-left:.5rem !important; padding-right:.5rem !important; }
 }
 </style>
 """, unsafe_allow_html=True)
 
-
 # ─────────────────────────────────────────
-#  CANVAS CONSTANTS
+# CANVAS CONSTANTS (Trail color brightened for better visibility)
 # ─────────────────────────────────────────
-CANVAS_W  = 1100
-CANVAS_H  = 560
-NEST_POS  = (int(CANVAS_W * 0.12), CANVAS_H // 2)
-FOOD_POS  = (int(CANVAS_W * 0.88), CANVAS_H // 2)
-NEST_R    = 40
-FOOD_R    = 36
+CANVAS_W = 1100
+CANVAS_H = 560
+NEST_POS = (int(CANVAS_W * 0.12), CANVAS_H // 2)
+FOOD_POS = (int(CANVAS_W * 0.88), CANVAS_H // 2)
+NEST_R = 40
+FOOD_R = 36
 MAX_PHERO = 1500
-
-BG_COL    = (8,  12,  20)
-NEST_COL  = (100, 60, 220)
-FOOD_COL  = (240, 60,  80)
-ANT_COL   = (203, 213, 225)
-CARRY_COL = (249, 115,  22)
-TRAIL_COL = (94, 234, 212)
-
+BG_COL = (8, 12, 20)
+NEST_COL = (100, 60, 220)
+FOOD_COL = (240, 60, 80)
+ANT_COL = (203, 213, 225)
+CARRY_COL = (249, 115, 22)
+TRAIL_COL = (120, 250, 220)   # ← Brighter cyan so trails are clearly visible
 
 # ─────────────────────────────────────────
-#  ANT SPRITES
+# ANT SPRITES (Improved: bigger + thicker lines so ants are clearly visible)
 # ─────────────────────────────────────────
 @st.cache_resource
 def build_sprites():
-    SZ = 26
+    SZ = 32                                      # ← Bigger sprite (was 26)
     def make_ant(carrying):
-        img = Image.new("RGBA", (SZ,SZ), (0,0,0,0))
-        d   = ImageDraw.Draw(img)
-        ac  = ANT_COL + (255,)
-        fc  = CARRY_COL + (255,)
-        d.line([(13,12),( 7, 7)], fill=ac, width=1)
-        d.line([(12,13),( 4,12)], fill=ac, width=1)
-        d.line([(11,14),( 6,19)], fill=ac, width=1)
-        d.line([(13,12),(19, 7)], fill=ac, width=1)
-        d.line([(12,13),(20,12)], fill=ac, width=1)
-        d.line([(11,14),(16,19)], fill=ac, width=1)
-        d.ellipse([ 2,10,10,16], fill=ac)
-        d.ellipse([ 9,11,15,15], fill=ac)
-        d.ellipse([14,10,21,16], fill=ac)
-        d.line([(19,11),(24, 7)], fill=ac, width=1)
-        d.line([(19,15),(24,19)], fill=ac, width=1)
-        d.ellipse([23, 6,25, 8], fill=ac)
-        d.ellipse([23,18,25,20], fill=ac)
+        img = Image.new("RGBA", (SZ, SZ), (0,0,0,0))
+        d = ImageDraw.Draw(img)
+        ac = ANT_COL + (255,)
+        fc = CARRY_COL + (255,)
+        w = 2                                        # ← Thicker lines
+        d.line([(15,14),( 9, 9)], fill=ac, width=w)
+        d.line([(14,15),( 6,14)], fill=ac, width=w)
+        d.line([(13,16),( 8,21)], fill=ac, width=w)
+        d.line([(15,14),(21, 9)], fill=ac, width=w)
+        d.line([(14,15),(22,14)], fill=ac, width=w)
+        d.line([(13,16),(18,21)], fill=ac, width=w)
+        d.ellipse([4,12,13,19], fill=ac)
+        d.ellipse([11,13,18,18], fill=ac)
+        d.ellipse([17,12,24,19], fill=ac)
+        d.line([(22,13),(27, 9)], fill=ac, width=w)
+        d.line([(22,17),(27,21)], fill=ac, width=w)
+        d.ellipse([26, 8,29,11], fill=ac)
+        d.ellipse([26,19,29,22], fill=ac)
         if carrying:
-            d.ellipse([21,11,26,15], fill=fc)
+            d.ellipse([24,13,30,18], fill=fc)
         return img
-    be,bf = make_ant(False), make_ant(True)
-    se,sf = {},{}
+
+    be, bf = make_ant(False), make_ant(True)
+    se, sf = {}, {}
     for a in range(360):
         se[a] = be.rotate(-a, resample=Image.BILINEAR, expand=False)
         sf[a] = bf.rotate(-a, resample=Image.BILINEAR, expand=False)
-    return se,sf
+    return se, sf
 
 SPRITES_E, SPRITES_F = build_sprites()
-SPRITE_HALF = 13
-
+SPRITE_HALF = 16   # ← Updated for new sprite size (was 13)
 
 # ─────────────────────────────────────────
-#  OBSTACLES
+# OBSTACLES (unchanged)
 # ─────────────────────────────────────────
 def point_in_obstacle(x, y, obstacles):
     for o in obstacles:
@@ -221,21 +208,20 @@ def build_obstacles(preset):
                         'r':rng.randint(18,36)})
     return obs
 
-
 # ─────────────────────────────────────────
-#  ANT AGENT
+# ANT AGENT (unchanged)
 # ─────────────────────────────────────────
 class Ant:
     __slots__ = ('x','y','angle','speed','hasFood')
     def __init__(self):
-        self.x,self.y   = NEST_POS[0]+random.uniform(-8,8), NEST_POS[1]+random.uniform(-8,8)
-        self.angle      = random.uniform(0, math.pi*2)
-        self.speed      = 3.5 + random.uniform(0,1.8)
-        self.hasFood    = False
+        self.x,self.y = NEST_POS[0]+random.uniform(-8,8), NEST_POS[1]+random.uniform(-8,8)
+        self.angle = random.uniform(0, math.pi*2)
+        self.speed = 3.5 + random.uniform(0,1.8)
+        self.hasFood = False
 
     def update(self, pheromones, strength, speed_mult, wander, obstacles):
         nx,ny = NEST_POS; fx,fy = FOOD_POS
-        spd   = self.speed * speed_mult
+        spd = self.speed * speed_mult
         if not self.hasFood and math.hypot(fx-self.x,fy-self.y) < FOOD_R+4:
             self.hasFood=True; self.angle=math.atan2(ny-self.y,nx-self.x); return True
         if self.hasFood and math.hypot(nx-self.x,ny-self.y) < NEST_R+4:
@@ -265,23 +251,22 @@ class Ant:
             self.angle=-self.angle; self.y=max(5,min(CANVAS_H-5,self.y))
         return None
 
-
 # ─────────────────────────────────────────
-#  SESSION STATE INIT
+# SESSION STATE INIT (unchanged)
 # ─────────────────────────────────────────
 def _init(n=80):
-    st.session_state.colony         = [Ant() for _ in range(n)]
-    st.session_state.pheromones     = []
+    st.session_state.colony = [Ant() for _ in range(n)]
+    st.session_state.pheromones = []
     st.session_state.food_collected = 0
-    st.session_state.tick           = 0
-    st.session_state.rate_buf       = []
-    st.session_state.trail_heatmap  = {}
+    st.session_state.tick = 0
+    st.session_state.rate_buf = []
+    st.session_state.trail_heatmap = {}
     st.session_state.prev_collected = 0
-    st.session_state.best_rate      = 0
+    st.session_state.best_rate = 0
 
 if 'colony' not in st.session_state:
     st.session_state.num_ants = 80
-    st.session_state.running  = False
+    st.session_state.running = False
     _init()
 
 for k,v in [('rate_buf',[]),('trail_heatmap',{}),('prev_collected',0),
@@ -294,11 +279,10 @@ def reset_sim():
     _init(st.session_state.num_ants)
 
 def start_sim(): st.session_state.running = True
-def stop_sim():  st.session_state.running = False
-
+def stop_sim(): st.session_state.running = False
 
 # ─────────────────────────────────────────
-#  SIDEBAR
+# SIDEBAR (unchanged)
 # ─────────────────────────────────────────
 with st.sidebar:
     st.markdown(
@@ -319,41 +303,32 @@ with st.sidebar:
         '</div></div>',
         unsafe_allow_html=True
     )
-
     st.markdown("### Swarm Controls")
     new_n = st.slider("Colony Size", 10, 300, st.session_state.num_ants, 10)
     if new_n != st.session_state.num_ants:
         st.session_state.num_ants = new_n
         reset_sim()
-
     speed_label = st.radio("Simulation Speed",
                            ["Slow","Normal","Fast","Turbo"], index=1, horizontal=True)
-    speed_map   = {"Slow":0.5,"Normal":1.0,"Fast":1.8,"Turbo":3.0}
-    sim_speed   = speed_map[speed_label]
-
-    wander    = st.slider("Wander Factor", 0.1, 2.0, 0.7, 0.05,
+    speed_map = {"Slow":0.5,"Normal":1.0,"Fast":1.8,"Turbo":3.0}
+    sim_speed = speed_map[speed_label]
+    wander = st.slider("Wander Factor", 0.1, 2.0, 0.7, 0.05,
                           help="Higher = more random exploration.")
-
     st.markdown("### Pheromone Engine")
-    strength  = st.slider("Trail Strength",   0.1, 1.0, 0.75, 0.05)
+    strength = st.slider("Trail Strength", 0.1, 1.0, 0.75, 0.05)
     evap_rate = st.slider("Evaporation Rate", 0.005, 0.25, 0.018, 0.005)
-
     st.markdown("### Visualisation")
-    show_heatmap = st.toggle("Heat-map Overlay",      value=False)
-    show_trails  = st.toggle("Show Pheromone Trails",  value=True)
-    trail_glow   = st.toggle("Trail Glow Effect",      value=False)
-
+    show_heatmap = st.toggle("Heat-map Overlay", value=False)
+    show_trails = st.toggle("Show Pheromone Trails", value=True)
+    trail_glow = st.toggle("Trail Glow Effect", value=False)
     st.markdown("### Obstacles")
     obs_mode = st.selectbox("Obstacle Preset", ["None","Wall","Maze","Random"])
-
     st.markdown("---")
     col_r, col_run, col_s = st.columns(3)
-
     with col_r:
         st.markdown('<div class="btn-reset">', unsafe_allow_html=True)
         st.button("↺ RESET", on_click=reset_sim, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
-
     with col_run:
         if not st.session_state.running:
             st.markdown('<div class="btn-run">', unsafe_allow_html=True)
@@ -363,7 +338,6 @@ with st.sidebar:
             st.markdown('<div class="btn-stop">', unsafe_allow_html=True)
             st.button("⏸ STOP", on_click=stop_sim, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
-
     with col_s:
         def step_sim():
             if not st.session_state.running:
@@ -377,7 +351,6 @@ with st.sidebar:
         st.markdown('<div class="btn-reset">', unsafe_allow_html=True)
         st.button("⏭ STEP", on_click=step_sim, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
-
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(
         '<details style="background:#161e2e;border:1px solid rgba(94,234,212,.15);'
@@ -399,16 +372,12 @@ with st.sidebar:
     )
 
 current_obstacles = build_obstacles(obs_mode)
-run_simulation    = st.session_state.running
-
+run_simulation = st.session_state.running
 
 # ─────────────────────────────────────────
-#  PHYSICS TICK  (runs N steps per rerun)
-#  This replaces the while-loop so st.rerun()
-#  drives animation — works on Streamlit Cloud.
+# PHYSICS TICK (unchanged)
 # ─────────────────────────────────────────
-STEPS_PER_FRAME = 8   # physics steps per rerun — tune for speed vs smoothness
-
+STEPS_PER_FRAME = 8
 if run_simulation:
     now = time.time()
     for _ in range(STEPS_PER_FRAME):
@@ -431,26 +400,22 @@ if run_simulation:
                 st.session_state.trail_heatmap[cell] = \
                     st.session_state.trail_heatmap.get(cell,0) + 1
 
-
 # ─────────────────────────────────────────
-#  DRAW FRAME
+# DRAW FRAME (unchanged - now uses improved sprites)
 # ─────────────────────────────────────────
 def draw_frame():
-    img  = Image.new("RGB", (CANVAS_W,CANVAS_H), BG_COL)
+    img = Image.new("RGB", (CANVAS_W,CANVAS_H), BG_COL)
     draw = ImageDraw.Draw(img)
-
     for gx in range(0,CANVAS_W,60):
         draw.line([(gx,0),(gx,CANVAS_H)], fill=(18,24,36), width=1)
     for gy in range(0,CANVAS_H,60):
         draw.line([(0,gy),(CANVAS_W,gy)], fill=(18,24,36), width=1)
-
     if show_heatmap and st.session_state.trail_heatmap:
         hm=st.session_state.trail_heatmap; mx=max(hm.values()) or 1
         for (gx,gy),val in hm.items():
             t=min(val/mx,1.0)
             draw.rectangle([gx*8,gy*8,gx*8+8,gy*8+8],
                            fill=(int(20+t*120),int(t*50),int(t*80)))
-
     if show_trails:
         if trail_glow:
             tl=Image.new("RGB",(CANVAS_W,CANVAS_H),BG_COL); td=ImageDraw.Draw(tl)
@@ -465,51 +430,43 @@ def draw_frame():
                 t=max(0,min(1,p['life']/255))
                 draw.rectangle([p['x']-1,p['y']-1,p['x']+2,p['y']+2],
                                fill=(int(TRAIL_COL[0]*t),int(TRAIL_COL[1]*t),int(TRAIL_COL[2]*t)))
-
     for o in current_obstacles:
         draw.ellipse([o['x']-o['r'],o['y']-o['r'],o['x']+o['r'],o['y']+o['r']],
                      fill=(28,35,52), outline=(60,80,110), width=2)
-
     for rh in (58,46,34):
         draw.ellipse([NEST_POS[0]-rh,NEST_POS[1]-rh,NEST_POS[0]+rh,NEST_POS[1]+rh],
                      outline=NEST_COL, width=1)
     draw.ellipse([NEST_POS[0]-NEST_R,NEST_POS[1]-NEST_R,
                   NEST_POS[0]+NEST_R,NEST_POS[1]+NEST_R], fill=NEST_COL)
     draw.text((NEST_POS[0]-7,NEST_POS[1]-7), "N", fill=(200,190,255))
-
     for rh in (52,40,28):
         draw.ellipse([FOOD_POS[0]-rh,FOOD_POS[1]-rh,FOOD_POS[0]+rh,FOOD_POS[1]+rh],
                      outline=FOOD_COL, width=1)
     draw.ellipse([FOOD_POS[0]-FOOD_R,FOOD_POS[1]-FOOD_R,
                   FOOD_POS[0]+FOOD_R,FOOD_POS[1]+FOOD_R], fill=FOOD_COL)
     draw.text((FOOD_POS[0]-5,FOOD_POS[1]-7), "F", fill=(255,220,200))
-
     for ant in st.session_state.colony:
         adeg=int(math.degrees(ant.angle))%360
         sprite=SPRITES_F[adeg] if ant.hasFood else SPRITES_E[adeg]
         px,py=int(ant.x)-SPRITE_HALF, int(ant.y)-SPRITE_HALF
         if 0<=px<CANVAS_W-26 and 0<=py<CANVAS_H-26:
             img.paste(sprite,(px,py),sprite)
-
     # Legend
     lx,ly = CANVAS_W-160, CANVAS_H-70
     draw.rectangle([lx-8,ly-8,CANVAS_W-6,CANVAS_H-6], fill=(12,18,30), outline=(40,55,80))
-    draw.ellipse([lx,ly+2,lx+12,ly+14],  fill=NEST_COL)
-    draw.text(  (lx+16,ly+2),  "Nest",  fill=(180,170,240))
+    draw.ellipse([lx,ly+2,lx+12,ly+14], fill=NEST_COL)
+    draw.text( (lx+16,ly+2), "Nest", fill=(180,170,240))
     draw.ellipse([lx,ly+20,lx+12,ly+32], fill=FOOD_COL)
-    draw.text(  (lx+16,ly+20), "Food",  fill=(255,200,190))
+    draw.text( (lx+16,ly+20), "Food", fill=(255,200,190))
     draw.rectangle([lx,ly+38,lx+12,ly+44], fill=TRAIL_COL)
-    draw.text(  (lx+16,ly+38), "Trail", fill=(160,240,220))
-
+    draw.text( (lx+16,ly+38), "Trail", fill=(160,240,220))
     # Status dot
     status_col = (34,197,94) if run_simulation else (100,116,139)
     draw.ellipse([8,8,18,18], fill=status_col)
-
     return img
 
-
 # ─────────────────────────────────────────
-#  STATS
+# STATS (unchanged)
 # ─────────────────────────────────────────
 def compute_rate():
     now=time.time()
@@ -517,16 +474,15 @@ def compute_rate():
     return len(st.session_state.rate_buf)
 
 def render_stats(food, colony_sz, carrying, rate, best_rate, trails, ticks, eff):
-    delta  = food - st.session_state.prev_collected
+    delta = food - st.session_state.prev_collected
     d_html = (f'<span style="color:#22c55e;font-size:.7rem"> +{delta}</span>' if delta else "")
-    rs     = f'<span style="font-size:.65rem;color:#64748b"> best {best_rate}</span>'
-    os_    = f'<span style="font-size:.65rem;color:#64748b"> / {colony_sz}</span>'
-    eff_c  = min(100,eff)
+    rs = f'<span style="font-size:.65rem;color:#64748b"> best {best_rate}</span>'
+    os_ = f'<span style="font-size:.65rem;color:#64748b"> / {colony_sz}</span>'
+    eff_c = min(100,eff)
     spd_col= {"Slow":"#64748b","Normal":"#5eead4","Fast":"#f59e0b","Turbo":"#f43f5e"}
-    sc     = spd_col.get(speed_label,"#5eead4")
+    sc = spd_col.get(speed_label,"#5eead4")
     run_state="RUNNING" if run_simulation else "PAUSED"
-    run_col  ="#22c55e"  if run_simulation else "#64748b"
-
+    run_col ="#22c55e" if run_simulation else "#64748b"
     def card(lbl,val,sub=""):
         return (
             '<div style="background:#161e2e;border:1px solid rgba(94,234,212,.15);'
@@ -536,7 +492,6 @@ def render_stats(food, colony_sz, carrying, rate, best_rate, trails, ticks, eff)
             f'<div style="font-size:1.3rem;color:#5eead4;font-family:DM Mono,monospace;'
             f'line-height:1.1">{val}{sub}</div></div>'
         )
-
     return (
         '<div class="stat-panel">'
         + f'<div style="background:#161e2e;border:1px solid rgba(94,234,212,.15);border-radius:14px;'
@@ -551,10 +506,10 @@ def render_stats(food, colony_sz, carrying, rate, best_rate, trails, ticks, eff)
           f'letter-spacing:.07em;font-family:DM Mono,monospace">Speed</span>'
           f'<span style="font-size:.75rem;font-family:DM Mono,monospace;color:{sc}">{speed_label}</span></div>'
         + card("Biomass Harvested", food, d_html)
-        + card("Payload Carriers",  carrying, os_)
-        + card("Rate  units/min",   rate, rs)
-        + card("Active Trails",     trails)
-        + card("Sim Ticks",         ticks)
+        + card("Payload Carriers", carrying, os_)
+        + card("Rate units/min", rate, rs)
+        + card("Active Trails", trails)
+        + card("Sim Ticks", ticks)
         + '<div style="background:#161e2e;border:1px solid rgba(94,234,212,.15);'
           'border-radius:14px;padding:11px 15px">'
           '<div style="font-size:.6rem;color:#64748b;text-transform:uppercase;'
@@ -566,9 +521,8 @@ def render_stats(food, colony_sz, carrying, rate, best_rate, trails, ticks, eff)
         '</div>'
     )
 
-
 # ─────────────────────────────────────────
-#  MAIN LAYOUT
+# MAIN LAYOUT (FIXED image rendering)
 # ─────────────────────────────────────────
 badge = ('<span class="badge badge-run">&#9679; RUNNING</span>'
          if run_simulation else
@@ -585,11 +539,17 @@ st.markdown(
 )
 
 canvas_col, stats_col = st.columns([5,2])
+
 with canvas_col:
-    st.image(draw_frame(), use_container_width=True, output_format="PNG")
+    # FIXED: This is the exact fix for the blank canvas on Streamlit Cloud
+    img = draw_frame()
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    buf.seek(0)
+    st.image(buf, use_container_width=True)
 
 carrying = sum(1 for a in st.session_state.colony if a.hasFood)
-rate     = compute_rate()
+rate = compute_rate()
 if rate > st.session_state.best_rate:
     st.session_state.best_rate = rate
 eff = min(100, int(carrying / max(1,len(st.session_state.colony)) * 100))
@@ -604,9 +564,7 @@ with stats_col:
 
 st.session_state.prev_collected = st.session_state.food_collected
 
-# ── Drive animation via st.rerun() ──
-# This is the correct pattern for Streamlit Cloud:
-# compute physics → render → rerun → repeat
+# ── Drive animation ──
 if run_simulation:
-    time.sleep(0.04)   # ~25 fps cap, prevents CPU spin
+    time.sleep(0.04)
     st.rerun()
