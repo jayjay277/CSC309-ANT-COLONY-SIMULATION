@@ -586,7 +586,7 @@ st.markdown(
 
 canvas_col, stats_col = st.columns([5,2])
 with canvas_col:
-    st.image(draw_frame(), use_container_width=True, output_format="JPEG")
+    st.image(draw_frame(), use_container_width=True, output_format="PNG")
 
 carrying = sum(1 for a in st.session_state.colony if a.hasFood)
 rate     = compute_rate()
