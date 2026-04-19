@@ -11,9 +11,7 @@ st.set_page_config(
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap');
-:root {
-  --bg:#080c14; --surface:#0f1623; --border:rgba(94,234,212,.15); --accent:#5eead4;
-}
+:root { --bg:#080c14; --surface:#0f1623; --border:rgba(94,234,212,.15); --accent:#5eead4; }
 .stApp { background:var(--bg) !important; }
 .stDeployButton { display:none !important; }
 #MainMenu { visibility:hidden !important; }
@@ -23,20 +21,14 @@ section[data-testid="stSidebar"] {
   border-right:1px solid var(--border) !important;
 }
 .block-container {
-  padding-top:2rem !important;
-  padding-left:1.2rem !important;
-  padding-right:1.2rem !important;
-  max-width:100% !important;
+  padding-top:2rem !important; padding-left:1.2rem !important;
+  padding-right:1.2rem !important; max-width:100% !important;
 }
 h1,h2,h3,h4 { font-family:'Syne',sans-serif !important; color:var(--accent) !important; }
 div[data-testid="stButton"] button {
   width:100% !important; border-radius:8px !important;
   font-family:'DM Mono',monospace !important; letter-spacing:.1em !important;
   font-size:.78rem !important; font-weight:600 !important; padding:0.45rem 0.5rem !important;
-}
-/* button colour overrides */
-div[data-testid="stButton"]:has(button[kind="secondary"]) button { 
-  background:transparent !important; 
 }
 .btn-run  > div > button { background:rgba(34,197,94,.12)  !important; border:1.5px solid #22c55e !important; color:#22c55e !important; }
 .btn-stop > div > button { background:rgba(245,158,11,.12) !important; border:1.5px solid #f59e0b !important; color:#f59e0b !important; }
@@ -47,7 +39,7 @@ div[data-testid="stButton"]:has(button[kind="secondary"]) button {
 
 # ── SESSION STATE ────────────────────────────────────────
 if "sim_cmd" not in st.session_state:
-    st.session_state.sim_cmd = "run"   # run | stop | reset | step
+    st.session_state.sim_cmd = "run"
 
 # ── SIDEBAR ──────────────────────────────────────────────
 with st.sidebar:
@@ -69,13 +61,22 @@ with st.sidebar:
         '</div></div>', unsafe_allow_html=True)
 
     st.markdown("### ⚙️ Swarm Controls")
-    num_ants  = st.slider("Colony Size",      20, 300,  80, 10)
-    ant_speed = st.slider("Ant Speed",         1,   8,   3,  1)
-    wander    = st.slider("Wander Factor",     1,  60,  25,  1, help="Higher = more random")
+    num_ants = st.slider("Colony Size", 20, 300, 80, 10)
+
+    # FIX 1: Speed as radio categories instead of raw number
+    speed_label = st.radio("Simulation Speed", ["Slow","Normal","Fast","Turbo"],
+                           index=1, horizontal=True)
+    speed_map   = {"Slow": 1.5, "Normal": 3.0, "Fast": 5.0, "Turbo": 8.0}
+    ant_speed   = speed_map[speed_label]
+
+    wander = st.slider("Wander Factor", 1, 60, 25, 1, help="Higher = more random exploration")
 
     st.markdown("### 🧪 Pheromone Engine")
-    trail_str = st.slider("Trail Strength",   10, 200, 100, 10)
-    evap_rate = st.slider("Evaporation Rate",  1,  30,   8,  1)
+    trail_str = st.slider("Trail Strength", 10, 200, 100, 10)
+
+    # FIX 2: Evaporation range reduced — max 5 instead of 30, default 1
+    evap_rate = st.slider("Evaporation Rate", 0.1, 5.0, 0.8, 0.1,
+                          help="Lower = trails last longer")
 
     st.markdown("### 🗺️ Environment")
     obs_preset = st.selectbox("Obstacle Preset", ["None","Wall","Maze","Random"])
@@ -87,12 +88,10 @@ with st.sidebar:
     trail_glow   = st.toggle("Trail Glow Effect",     value=False)
 
     st.markdown("---")
-
-    # ── CONTROL BUTTONS (Streamlit-native, always visible) ──
     c1, c2 = st.columns(2)
     with c1:
         st.markdown('<div class="btn-run">', unsafe_allow_html=True)
-        if st.button("▶ RUN", key="btn_run", use_container_width=True):
+        if st.button("▶ RUN",  key="btn_run",  use_container_width=True):
             st.session_state.sim_cmd = "run"
         st.markdown('</div>', unsafe_allow_html=True)
     with c2:
@@ -100,11 +99,10 @@ with st.sidebar:
         if st.button("⏸ STOP", key="btn_stop", use_container_width=True):
             st.session_state.sim_cmd = "stop"
         st.markdown('</div>', unsafe_allow_html=True)
-
     c3, c4 = st.columns(2)
     with c3:
         st.markdown('<div class="btn-step">', unsafe_allow_html=True)
-        if st.button("⏭ STEP", key="btn_step", use_container_width=True):
+        if st.button("⏭ STEP",  key="btn_step",  use_container_width=True):
             st.session_state.sim_cmd = "step"
         st.markdown('</div>', unsafe_allow_html=True)
     with c4:
@@ -129,10 +127,9 @@ with st.sidebar:
 
 # ── PAGE HEADER ──────────────────────────────────────────
 cmd = st.session_state.sim_cmd
-badge_text  = "● RUNNING" if cmd != "stop" else "○ PAUSED"
-badge_color = "#22c55e"   if cmd != "stop" else "#64748b"
+badge_color = "#22c55e" if cmd != "stop" else "#64748b"
 badge_bg    = "rgba(34,197,94,.15)" if cmd != "stop" else "rgba(100,116,139,.15)"
-badge_bdr   = "#22c55e"   if cmd != "stop" else "#64748b"
+badge_text  = "● RUNNING" if cmd != "stop" else "○ PAUSED"
 
 st.markdown(
     f'<div style="margin-bottom:8px">'
@@ -140,22 +137,18 @@ st.markdown(
     f'Ant Colony Optimisation</span>'
     f'&nbsp;&nbsp;<span style="display:inline-block;padding:2px 10px;border-radius:99px;'
     f'font-size:.68rem;font-family:DM Mono,monospace;letter-spacing:.08em;text-transform:uppercase;'
-    f'background:{badge_bg};color:{badge_color};border:1px solid {badge_bdr}">{badge_text}</span>'
+    f'background:{badge_bg};color:{badge_color};border:1px solid {badge_color}">{badge_text}</span>'
     f'</div>'
     f'<div style="font-size:.75rem;color:#64748b;font-family:DM Mono,monospace;'
     f'letter-spacing:.04em;margin-bottom:10px">'
-    f'Swarm intelligence foraging simulator · CSC309 · 60 fps client-side canvas</div>',
+    f'Swarm intelligence foraging simulator · CSC309 · Speed: '
+    f'<span style="color:#5eead4">{speed_label}</span></div>',
     unsafe_allow_html=True
 )
 
-# ── cmd is consumed once — after "step" or "reset" revert to run/stop ──
-# We pass cmd into JS; JS uses it once on load to set initial state.
-# "reset" restarts the sim; "step" does one tick then pauses.
 js_autorun  = "false" if cmd == "stop"  else "true"
 js_do_reset = "true"  if cmd == "reset" else "false"
 js_do_step  = "true"  if cmd == "step"  else "false"
-
-# After a one-shot command, revert session state so next normal rerun is neutral
 if cmd in ("reset", "step"):
     st.session_state.sim_cmd = "stop" if cmd == "step" else "run"
 
@@ -166,18 +159,13 @@ html_code = f"""<!DOCTYPE html>
 <style>
 * {{ box-sizing:border-box; margin:0; padding:0; }}
 body {{
-  background:#080c14;
-  font-family:'DM Mono',monospace;
+  background:#080c14; font-family:'DM Mono',monospace;
   display:flex; flex-direction:column; align-items:center; overflow:hidden;
 }}
-#wrap {{
-  display:flex; gap:14px; width:100%; padding:8px 10px 6px; align-items:flex-start;
-}}
+#wrap {{ display:flex; gap:14px; width:100%; padding:8px 10px 6px; align-items:flex-start; }}
 canvas {{
-  border-radius:12px;
-  border:1px solid rgba(94,234,212,.18);
-  box-shadow:0 12px 40px rgba(0,0,0,.7);
-  flex-shrink:0;
+  border-radius:12px; border:1px solid rgba(94,234,212,.18);
+  box-shadow:0 12px 40px rgba(0,0,0,.7); flex-shrink:0;
 }}
 #stats {{
   flex:1; display:flex; flex-direction:column; gap:8px;
@@ -187,12 +175,9 @@ canvas {{
   background:#161e2e; border:1px solid rgba(94,234,212,.15);
   border-radius:14px; padding:11px 15px;
 }}
-.clabel {{
-  font-size:9px; color:#64748b; text-transform:uppercase;
-  letter-spacing:.07em; margin-bottom:4px;
-}}
-.cval {{ font-size:1.2rem; color:#5eead4; line-height:1.1; }}
-.csub {{ font-size:10px; color:#64748b; }}
+.clabel {{ font-size:9px; color:#64748b; text-transform:uppercase; letter-spacing:.07em; margin-bottom:4px; }}
+.cval   {{ font-size:1.2rem; color:#5eead4; line-height:1.1; }}
+.csub   {{ font-size:10px; color:#64748b; }}
 .srow {{
   display:flex; justify-content:space-between; align-items:center;
   background:#161e2e; border:1px solid rgba(94,234,212,.15);
@@ -205,8 +190,7 @@ canvas {{
 }}
 #eff-bar {{
   height:100%; border-radius:99px;
-  background:linear-gradient(90deg,#a78bfa,#5eead4);
-  width:0%; transition:width .3s;
+  background:linear-gradient(90deg,#a78bfa,#5eead4); width:0%; transition:width .3s;
 }}
 </style>
 </head>
@@ -256,13 +240,14 @@ const CFG = {{
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 let NEST, FOOD;
-const NEST_R=40, FOOD_R=36, MAX_PHERO=1200;
+const NEST_R=40, FOOD_R=36, MAX_PHERO=1500;
 
 function sizeCanvas() {{
   const wrap=document.getElementById('wrap');
   const sw=document.getElementById('stats').offsetWidth||200;
   const W=Math.max(360, wrap.clientWidth - sw - 24);
-  const H=Math.round(W*0.52);
+  // FIX 3: taller canvas so stats panel + legend are fully visible
+  const H=Math.round(W * 0.60);
   canvas.width=W; canvas.height=H;
   NEST={{x:Math.round(W*0.12), y:Math.round(H/2)}};
   FOOD={{x:Math.round(W*0.88), y:Math.round(H/2)}};
@@ -286,9 +271,11 @@ function buildObs() {{
   }}else if(CFG.obsPreset===3){{
     for(let i=0;i<8;i++){{
       const s=Math.sin(i*127.1)*43758.5453, t=Math.sin(i*311.7)*43758.5453;
-      obstacles.push({{x:180+(Math.abs(s)%(canvas.width-360)),
-                       y:60+(Math.abs(t)%(canvas.height-120)),
-                       r:18+Math.abs(Math.sin(i)*20)}});
+      obstacles.push({{
+        x:180+(Math.abs(s)%(canvas.width-360)),
+        y:60+(Math.abs(t)%(canvas.height-120)),
+        r:18+Math.abs(Math.sin(i)*20)
+      }});
     }}
   }}
 }}
@@ -299,8 +286,12 @@ function inObs(x,y){{
 }}
 
 function makeAnt(){{
-  return {{x:NEST.x+rnd(-8,8),y:NEST.y+rnd(-8,8),
-           angle:rnd(0,Math.PI*2),speed:CFG.antSpeed+rnd(0,1.5),hasFood:false}};
+  return {{
+    x:NEST.x+rnd(-8,8), y:NEST.y+rnd(-8,8),
+    angle:rnd(0,Math.PI*2),
+    speed:CFG.antSpeed + rnd(0, CFG.antSpeed*0.3),
+    hasFood:false
+  }};
 }}
 
 function initSim(){{
@@ -311,17 +302,17 @@ function initSim(){{
 
 function stepOnce(){{
   tick++;
-  pheromones=pheromones.filter(p=>{{p.life-=CFG.evapRate;return p.life>0;}});
+  pheromones=pheromones.filter(p=>{{p.life-=CFG.evapRate; return p.life>0;}});
   const now=Date.now();
   for(const ant of colony){{
-    const dxF=FOOD.x-ant.x,dyF=FOOD.y-ant.y;
-    const dxN=NEST.x-ant.x,dyN=NEST.y-ant.y;
-    if(!ant.hasFood&&Math.hypot(dxF,dyF)<FOOD_R+4){{
-      ant.hasFood=true;ant.angle=Math.atan2(dyN,dxN);continue;
+    const dxF=FOOD.x-ant.x, dyF=FOOD.y-ant.y;
+    const dxN=NEST.x-ant.x, dyN=NEST.y-ant.y;
+    if(!ant.hasFood && Math.hypot(dxF,dyF)<FOOD_R+4){{
+      ant.hasFood=true; ant.angle=Math.atan2(dyN,dxN); continue;
     }}
-    if(ant.hasFood&&Math.hypot(dxN,dyN)<NEST_R+4){{
-      ant.hasFood=false;ant.angle=rnd(0,Math.PI*2);
-      foodCollected++;rateBuf.push(now);continue;
+    if(ant.hasFood && Math.hypot(dxN,dyN)<NEST_R+4){{
+      ant.hasFood=false; ant.angle=rnd(0,Math.PI*2);
+      foodCollected++; rateBuf.push(now); continue;
     }}
     if(ant.hasFood){{
       if(Math.random()<0.18){{
@@ -345,82 +336,156 @@ function stepOnce(){{
       nx=ant.x+Math.cos(ant.angle)*ant.speed;
       ny=ant.y+Math.sin(ant.angle)*ant.speed;
     }}
-    ant.x=nx;ant.y=ny;
-    if(ant.x<4||ant.x>canvas.width-4) {{ant.angle=Math.PI-ant.angle;ant.x=Math.max(4,Math.min(canvas.width-4,ant.x));}}
-    if(ant.y<4||ant.y>canvas.height-4){{ant.angle=-ant.angle;        ant.y=Math.max(4,Math.min(canvas.height-4,ant.y));}}
-    if(CFG.showHeat){{const k=(ant.x>>4)+','+(ant.y>>4);heatmap[k]=(heatmap[k]||0)+1;}}
+    ant.x=nx; ant.y=ny;
+    if(ant.x<4||ant.x>canvas.width-4)  {{ant.angle=Math.PI-ant.angle; ant.x=Math.max(4,Math.min(canvas.width-4,ant.x));}}
+    if(ant.y<4||ant.y>canvas.height-4) {{ant.angle=-ant.angle;         ant.y=Math.max(4,Math.min(canvas.height-4,ant.y));}}
+    if(CFG.showHeat){{const k=(ant.x>>4)+','+(ant.y>>4); heatmap[k]=(heatmap[k]||0)+1;}}
   }}
 }}
 
+// ── FIX 4: proper ant drawing — 3-segment body + 6 legs + antennae ──
+function drawAnt(x, y, angle, hasFood) {{
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+
+  const bc = hasFood ? '#fb923c' : '#cbd5e1';   // body colour
+  const lc = hasFood ? 'rgba(251,146,60,.5)' : 'rgba(148,163,184,.55)';
+
+  // --- 6 legs (drawn first, behind body) ---
+  ctx.strokeStyle = lc;
+  ctx.lineWidth   = 0.8;
+  // 3 pairs: front, mid, rear
+  const legPairs = [
+    {{ bx:4,  by:0,  lx:10, ly:-6  }},
+    {{ bx:0,  by:0,  lx:8,  ly:-7  }},
+    {{ bx:-4, by:0,  lx:9,  ly:-5  }},
+    {{ bx:4,  by:0,  lx:10, ly:6   }},
+    {{ bx:0,  by:0,  lx:8,  ly:7   }},
+    {{ bx:-4, by:0,  lx:9,  ly:5   }},
+  ];
+  for(const l of legPairs){{
+    ctx.beginPath();
+    ctx.moveTo(l.bx, l.by);
+    // slight elbow midpoint
+    ctx.lineTo((l.bx+l.lx)/2 + (l.ly>0?2:-2), (l.by+l.ly)/2);
+    ctx.lineTo(l.lx, l.ly);
+    ctx.stroke();
+  }}
+
+  // --- abdomen (rear, large oval) ---
+  ctx.fillStyle = bc;
+  ctx.beginPath();
+  ctx.ellipse(-6, 0, 5, 3.5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // --- thorax (middle, small) ---
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 3, 2.5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // --- head (front) ---
+  ctx.beginPath();
+  ctx.ellipse(6, 0, 3.5, 3, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // --- antennae ---
+  ctx.strokeStyle = lc;
+  ctx.lineWidth   = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(8, -1);
+  ctx.lineTo(13, -5);
+  ctx.moveTo(8,  1);
+  ctx.lineTo(13,  5);
+  ctx.stroke();
+
+  // --- food pellet ---
+  if(hasFood){{
+    ctx.fillStyle='#fbbf24';
+    ctx.beginPath();
+    ctx.arc(-6, 0, 3, 0, Math.PI*2);
+    ctx.fill();
+  }}
+
+  ctx.restore();
+}}
+
 function drawFrame(){{
-  const W=canvas.width,H=canvas.height;
-  ctx.fillStyle='#080c14';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(18,24,36,1)';ctx.lineWidth=1;
+  const W=canvas.width, H=canvas.height;
+  ctx.fillStyle='#080c14'; ctx.fillRect(0,0,W,H);
+
+  // grid
+  ctx.strokeStyle='rgba(18,24,36,1)'; ctx.lineWidth=1;
   for(let x=0;x<W;x+=55){{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}}
   for(let y=0;y<H;y+=55){{ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}}
+
+  // heatmap
   if(CFG.showHeat){{
-    let mx=1;for(const v of Object.values(heatmap))if(v>mx)mx=v;
-    for(const[k,v]of Object.entries(heatmap)){{
-      const[gx,gy]=k.split(',').map(Number),t=Math.min(v/mx,1);
+    let mx=1; for(const v of Object.values(heatmap)) if(v>mx) mx=v;
+    for(const [k,v] of Object.entries(heatmap)){{
+      const [gx,gy]=k.split(',').map(Number), t=Math.min(v/mx,1);
       ctx.fillStyle=`rgb(${{Math.round(20+t*120)}},${{Math.round(t*50)}},${{Math.round(t*80)}})`;
       ctx.fillRect(gx*16,gy*16,16,16);
     }}
   }}
+
+  // pheromones
   if(CFG.showTrails){{
-    if(CFG.trailGlow)ctx.filter='blur(2px)';
+    if(CFG.trailGlow) ctx.filter='blur(2px)';
     for(const p of pheromones){{
       const t=Math.max(0,Math.min(1,p.life/CFG.trailStr));
       ctx.fillStyle=`rgba(94,234,212,${{(t*.85).toFixed(3)}})`;
       ctx.fillRect(p.x-1,p.y-1,3,3);
     }}
-    if(CFG.trailGlow)ctx.filter='none';
+    if(CFG.trailGlow) ctx.filter='none';
   }}
+
+  // obstacles
   for(const o of obstacles){{
-    ctx.fillStyle='#1c2334';ctx.strokeStyle='#3c5070';ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1c2334'; ctx.strokeStyle='#3c5070'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(o.x,o.y,o.r,0,Math.PI*2); ctx.fill(); ctx.stroke();
   }}
-  for(const r of[58,46,34]){{
-    ctx.strokeStyle='rgba(100,60,220,0.35)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.arc(NEST.x,NEST.y,r,0,Math.PI*2);ctx.stroke();
+
+  // nest rings
+  for(const r of [58,46,34]){{
+    ctx.strokeStyle='rgba(100,60,220,0.35)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(NEST.x,NEST.y,r,0,Math.PI*2); ctx.stroke();
   }}
   ctx.fillStyle='rgb(100,60,220)';
-  ctx.beginPath();ctx.arc(NEST.x,NEST.y,NEST_R,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='rgba(200,190,255,.9)';ctx.font='bold 13px DM Mono,monospace';
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('N',NEST.x,NEST.y);
-  for(const r of[52,40,28]){{
-    ctx.strokeStyle='rgba(240,60,80,0.35)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.arc(FOOD.x,FOOD.y,r,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath(); ctx.arc(NEST.x,NEST.y,NEST_R,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(200,190,255,.9)'; ctx.font='bold 13px DM Mono,monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('N',NEST.x,NEST.y);
+
+  // food rings
+  for(const r of [52,40,28]){{
+    ctx.strokeStyle='rgba(240,60,80,0.35)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(FOOD.x,FOOD.y,r,0,Math.PI*2); ctx.stroke();
   }}
   ctx.fillStyle='rgb(240,60,80)';
-  ctx.beginPath();ctx.arc(FOOD.x,FOOD.y,FOOD_R,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='rgba(255,220,200,.9)';ctx.font='bold 13px DM Mono,monospace';
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('F',FOOD.x,FOOD.y);
+  ctx.beginPath(); ctx.arc(FOOD.x,FOOD.y,FOOD_R,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,220,200,.9)'; ctx.font='bold 13px DM Mono,monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('F',FOOD.x,FOOD.y);
+
+  // ants — proper insect shape
   for(const ant of colony){{
-    const ca=Math.cos(ant.angle),sa=Math.sin(ant.angle);
-    ctx.fillStyle=ant.hasFood?'#f97316':'#cbd5e1';
-    ctx.beginPath();ctx.ellipse(ant.x-ca*6,ant.y-sa*6,3,2,ant.angle,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(ant.x,ant.y,5,3,ant.angle,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(ant.x+ca*7,ant.y+sa*7,3,3,ant.angle,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1;
-    for(let i=-1;i<=1;i++){{
-      const lx=ant.x-sa*(i*4),ly=ant.y+ca*(i*4);
-      ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(lx-sa*7-ca*3,ly+ca*7-sa*3);
-      ctx.moveTo(lx,ly);ctx.lineTo(lx+sa*7-ca*3,ly-ca*7-sa*3);ctx.stroke();
-    }}
-    if(ant.hasFood){{ctx.fillStyle='#fb923c';ctx.beginPath();ctx.arc(ant.x,ant.y,3,0,Math.PI*2);ctx.fill();}}
+    drawAnt(ant.x, ant.y, ant.angle, ant.hasFood);
   }}
-  const lx=W-150,ly=H-65;
-  ctx.fillStyle='rgba(12,18,30,.9)';ctx.strokeStyle='rgba(40,55,80,1)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(lx-8,ly-8,148,66,8);ctx.fill();ctx.stroke();
-  ctx.fillStyle='rgb(100,60,220)';ctx.beginPath();ctx.arc(lx+6,ly+8,6,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='rgba(180,170,240,.9)';ctx.font='11px DM Mono,monospace';ctx.textAlign='left';ctx.textBaseline='middle';
-  ctx.fillText('Nest',lx+16,ly+8);
-  ctx.fillStyle='rgb(240,60,80)';ctx.beginPath();ctx.arc(lx+6,ly+26,6,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='rgba(255,200,190,.9)';ctx.fillText('Food',lx+16,ly+26);
-  ctx.fillStyle='rgba(94,234,212,.8)';ctx.fillRect(lx,ly+42,12,5);
-  ctx.fillStyle='rgba(160,240,220,.9)';ctx.fillText('Trail',lx+16,ly+44);
+
+  // legend (anchored bottom-right inside canvas)
+  const lx=W-152, ly=H-70;
+  ctx.fillStyle='rgba(12,18,30,.92)'; ctx.strokeStyle='rgba(40,55,80,1)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(lx-8,ly-8,150,68,8); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgb(100,60,220)';      ctx.beginPath(); ctx.arc(lx+6,ly+8,6,0,Math.PI*2);  ctx.fill();
+  ctx.fillStyle='rgba(180,170,240,.9)'; ctx.font='11px DM Mono,monospace'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('Nest', lx+16, ly+8);
+  ctx.fillStyle='rgb(240,60,80)';       ctx.beginPath(); ctx.arc(lx+6,ly+28,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,200,190,.9)'; ctx.fillText('Food',  lx+16, ly+28);
+  ctx.fillStyle='rgba(94,234,212,.8)';  ctx.fillRect(lx,ly+44,12,5);
+  ctx.fillStyle='rgba(160,240,220,.9)'; ctx.fillText('Trail', lx+16, ly+46);
+
+  // status dot
   ctx.fillStyle=simRunning?'#22c55e':'#64748b';
-  ctx.beginPath();ctx.arc(10,10,5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath(); ctx.arc(10,10,5,0,Math.PI*2); ctx.fill();
 }}
 
 let frameCount=0;
@@ -428,7 +493,7 @@ function updateStats(){{
   const now=Date.now();
   rateBuf=rateBuf.filter(t=>now-t<60000);
   const rate=rateBuf.length;
-  if(rate>bestRate)bestRate=rate;
+  if(rate>bestRate) bestRate=rate;
   const carrying=colony.filter(a=>a.hasFood).length;
   const eff=Math.round(carrying/Math.max(1,colony.length)*100);
   document.getElementById('s-food').textContent   =foodCollected;
@@ -452,18 +517,10 @@ function loop(){{
   requestAnimationFrame(loop);
 }}
 
-// ── BOOT — honour one-shot commands from Python ──────────
 sizeCanvas();
-if(CFG.doReset){{
-  initSim();
-}} else {{
-  initSim();   // always init fresh on page/rerun load
-}}
-if(CFG.doStep){{
-  simRunning=false;
-  stepOnce();
-}}
-simRunning = CFG.doReset ? true : (CFG.doStep ? false : CFG.autoRun);
+initSim();
+if(CFG.doStep){{ simRunning=false; stepOnce(); }}
+else {{ simRunning=CFG.autoRun; }}
 updateStats();
 loop();
 </script>
@@ -471,4 +528,4 @@ loop();
 </html>
 """
 
-components.html(html_code, height=660, scrolling=False)
+components.html(html_code, height=740, scrolling=False)
