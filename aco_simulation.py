@@ -249,6 +249,62 @@ select {
   padding:3px 7px; cursor:pointer;
 }
 
+/* ── Help (?) tooltip ── */
+.help-wrap {
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+}
+.help-btn {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:14px; height:14px;
+  border-radius:50%;
+  background:rgba(94,234,212,.12);
+  border:1px solid rgba(94,234,212,.35);
+  color:var(--accent);
+  font-size:9px;
+  font-weight:700;
+  cursor:pointer;
+  line-height:1;
+  padding:0;
+  font-family:'DM Mono',monospace;
+  flex-shrink:0;
+  transition:background .15s;
+}
+.help-btn:hover { background:rgba(94,234,212,.28); }
+.help-tip {
+  display:none;
+  position:absolute;
+  bottom:calc(100% + 6px);
+  left:50%;
+  transform:translateX(-50%);
+  background:#1a2540;
+  border:1px solid rgba(94,234,212,.3);
+  border-radius:8px;
+  padding:7px 10px;
+  font-size:.62rem;
+  color:#94a3b8;
+  line-height:1.55;
+  width:180px;
+  white-space:normal;
+  z-index:999;
+  pointer-events:none;
+  box-shadow:0 6px 20px rgba(0,0,0,.6);
+}
+/* small arrow */
+.help-tip::after {
+  content:'';
+  position:absolute;
+  top:100%; left:50%;
+  transform:translateX(-50%);
+  border:5px solid transparent;
+  border-top-color:#1a2540;
+}
+.help-wrap:hover .help-tip,
+.help-btn:focus + .help-tip { display:block; }
+
 /* ═══════════════════════════════════════
    STATS CARDS
 ═══════════════════════════════════════ */
@@ -376,6 +432,10 @@ select {
       <input type="range" id="r-ants" min="20" max="300" step="10" value="80"
              oninput="CFG.numAnts=+this.value; document.getElementById('v-ants').textContent=this.value; document.getElementById('s-total').textContent=' / '+this.value; resetSim()">
       <span class="val" id="v-ants">80</span>
+      <div class="help-wrap">
+        <button class="help-btn" tabindex="0">?</button>
+        <div class="help-tip">Number of ant agents in the colony. More ants find food faster but use more CPU.</div>
+      </div>
     </div>
 
     <!-- Speed radio -->
@@ -387,6 +447,10 @@ select {
         <button class="speed-btn"        onclick="setSpeed('Fast',5.0,this)">Fast</button>
         <button class="speed-btn"        onclick="setSpeed('Turbo',8.0,this)">Turbo</button>
       </div>
+      <div class="help-wrap">
+        <button class="help-btn" tabindex="0">?</button>
+        <div class="help-tip">Movement speed of each ant. Faster speeds make the colony converge quicker but trails are harder to read.</div>
+      </div>
     </div>
 
     <!-- Wander -->
@@ -395,6 +459,10 @@ select {
       <input type="range" id="r-wander" min="1" max="60" value="25"
              oninput="CFG.wander=+this.value/100; document.getElementById('v-wander').textContent=this.value">
       <span class="val" id="v-wander">25</span>
+      <div class="help-wrap">
+        <button class="help-btn" tabindex="0">?</button>
+        <div class="help-tip">How randomly ants steer when no pheromone is nearby. High values = wide exploration; low values = ants walk in straighter lines.</div>
+      </div>
     </div>
 
     <!-- Trail strength -->
@@ -403,6 +471,10 @@ select {
       <input type="range" id="r-trail" min="10" max="200" step="10" value="100"
              oninput="CFG.trailStr=+this.value; document.getElementById('v-trail').textContent=this.value">
       <span class="val" id="v-trail">100</span>
+      <div class="help-wrap">
+        <button class="help-btn" tabindex="0">?</button>
+        <div class="help-tip">Initial intensity of each pheromone deposit. Stronger trails attract more ants and persist longer before evaporating.</div>
+      </div>
     </div>
 
     <!-- Evaporation -->
@@ -411,6 +483,10 @@ select {
       <input type="range" id="r-evap" min="1" max="50" value="8"
              oninput="CFG.evapRate=+this.value/10; document.getElementById('v-evap').textContent=(+this.value/10).toFixed(1)">
       <span class="val" id="v-evap">0.8</span>
+      <div class="help-wrap">
+        <button class="help-btn" tabindex="0">?</button>
+        <div class="help-tip">How fast pheromone trails fade each frame. Low = long-lasting trails; high = only very recent paths remain, forcing ants to re-explore.</div>
+      </div>
     </div>
 
     <!-- Obstacles -->
@@ -422,6 +498,10 @@ select {
         <option value="2">Maze</option>
         <option value="3">Random</option>
       </select>
+      <div class="help-wrap">
+        <button class="help-btn" tabindex="0">?</button>
+        <div class="help-tip">Places solid obstacles on the canvas. Ants bounce off them, forcing the colony to find routes around barriers.</div>
+      </div>
     </div>
 
     <!-- Toggles -->
@@ -429,14 +509,26 @@ select {
       <div class="tog-item">
         <input type="checkbox" id="tog-trails" checked onchange="CFG.showTrails=this.checked">
         <label for="tog-trails">Trails</label>
+        <div class="help-wrap" style="margin-left:2px">
+          <button class="help-btn" tabindex="0">?</button>
+          <div class="help-tip">Show or hide the teal pheromone dots that ants leave behind as they carry food home.</div>
+        </div>
       </div>
       <div class="tog-item">
         <input type="checkbox" id="tog-heat" onchange="CFG.showHeat=this.checked">
         <label for="tog-heat">Heatmap</label>
+        <div class="help-wrap" style="margin-left:2px">
+          <button class="help-btn" tabindex="0">?</button>
+          <div class="help-tip">Overlays a colour heatmap showing which areas of the canvas ants visit most frequently.</div>
+        </div>
       </div>
       <div class="tog-item">
         <input type="checkbox" id="tog-glow" onchange="CFG.trailGlow=this.checked">
         <label for="tog-glow">Glow</label>
+        <div class="help-wrap" style="margin-left:2px">
+          <button class="help-btn" tabindex="0">?</button>
+          <div class="help-tip">Applies a soft blur glow to pheromone trails for a more atmospheric look. Slightly heavier on GPU.</div>
+        </div>
       </div>
     </div>
 
