@@ -621,26 +621,25 @@ metrics_ph.markdown(
 
 
 # ─────────────────────────────────────────
-#  SIMULATION LOOP
+#  SIMULATION LOOP (NATIVE STREAMLIT RERUN)
 # ─────────────────────────────────────────
-# ─────────────────────────────────────────
-#  SIMULATION LOOP
-# ─────────────────────────────────────────
-if run_simulation:
-    # STREAMLIT CLOUD FIX: Draw less frequently to prevent WebSocket choking
-    FRAME_EVERY = 5   
-    STATS_EVERY = 5   
+if st.session_state.running:
+    # Instead of an infinite while loop, we process a small batch of ticks,
+    # render ONE frame cleanly, and then tell Streamlit to rerun the script.
+    TICKS_PER_FRAME = 3  
 
-    while st.session_state.running:
+    for _ in range(TICKS_PER_FRAME):
         st.session_state.tick += 1
         now = time.time()
 
+        # Evaporation
         alive=[]
         for p in st.session_state.pheromones:
             p['life']-=evap_rate*60
             if p['life']>0: alive.append(p)
         st.session_state.pheromones=alive
 
+        # Agent updates
         for ant in st.session_state.colony:
             result=ant.update(st.session_state.pheromones,
                               strength,sim_speed,wander,current_obstacles)
@@ -651,26 +650,29 @@ if run_simulation:
                 cell=(int(ant.x)//8,int(ant.y)//8)
                 st.session_state.trail_heatmap[cell]=st.session_state.trail_heatmap.get(cell,0)+1
 
-        # Send image update less often
-        if st.session_state.tick % FRAME_EVERY == 0:
-            frame=draw_frame(st.session_state.pheromones,st.session_state.colony,
-                             current_obstacles,show_heatmap,show_trails,trail_glow)
-            canvas_ph.image(frame, use_container_width=True, output_format="JPEG")
+    # Render Visuals ONCE per script execution
+    frame = draw_frame(st.session_state.pheromones, st.session_state.colony,
+                       current_obstacles, show_heatmap, show_trails, trail_glow)
+    canvas_ph.image(frame, use_container_width=True, output_format="JPEG")
 
-        # Send stat update less often
-        if st.session_state.tick % STATS_EVERY == 0:
-            carrying=sum(1 for a in st.session_state.colony if a.hasFood)
-            rate=compute_rate()
-            if rate>st.session_state.best_rate: st.session_state.best_rate=rate
-            eff=min(100,int(carrying/max(1,len(st.session_state.colony))*100))
-            metrics_ph.markdown(
-                render_stats(st.session_state.food_collected,len(st.session_state.colony),
-                             carrying,rate,st.session_state.best_rate,
-                             len(st.session_state.pheromones),st.session_state.tick,
-                             eff, speed_label),
-                unsafe_allow_html=True
-            )
-            st.session_state.prev_collected=st.session_state.food_collected
+    # Update Stats ONCE per script execution
+    carrying = sum(1 for a in st.session_state.colony if a.hasFood)
+    rate = compute_rate()
+    if rate > st.session_state.best_rate: 
+        st.session_state.best_rate = rate
+    eff = min(100, int(carrying / max(1, len(st.session_state.colony)) * 100))
+    
+    metrics_ph.markdown(
+        render_stats(st.session_state.food_collected, len(st.session_state.colony),
+                     carrying, rate, st.session_state.best_rate,
+                     len(st.session_state.pheromones), st.session_state.tick,
+                     eff, speed_label),
+        unsafe_allow_html=True
+    )
+    st.session_state.prev_collected = st.session_state.food_collected
 
-        # STREAMLIT CLOUD FIX: Give the WebSocket enough time to breathe
-        time.sleep(0.03)
+    # Control the cloud frame rate to prevent WebSocket crashes
+    time.sleep(0.05) 
+    
+    # Natively trigger the next frame
+    st.rerun()
