@@ -623,9 +623,14 @@ metrics_ph.markdown(
 # ─────────────────────────────────────────
 #  SIMULATION LOOP
 # ─────────────────────────────────────────
+# ─────────────────────────────────────────
+#  SIMULATION LOOP
+# ─────────────────────────────────────────
 if run_simulation:
-    FRAME_EVERY = 3
-    STATS_EVERY = 4
+    # STREAMLIT CLOUD FIX: Draw less frequently to prevent WebSocket choking
+    FRAME_EVERY = 5   
+    STATS_EVERY = 5   
+
     while st.session_state.running:
         st.session_state.tick += 1
         now = time.time()
@@ -646,11 +651,13 @@ if run_simulation:
                 cell=(int(ant.x)//8,int(ant.y)//8)
                 st.session_state.trail_heatmap[cell]=st.session_state.trail_heatmap.get(cell,0)+1
 
+        # Send image update less often
         if st.session_state.tick % FRAME_EVERY == 0:
             frame=draw_frame(st.session_state.pheromones,st.session_state.colony,
                              current_obstacles,show_heatmap,show_trails,trail_glow)
             canvas_ph.image(frame, use_container_width=True, output_format="JPEG")
 
+        # Send stat update less often
         if st.session_state.tick % STATS_EVERY == 0:
             carrying=sum(1 for a in st.session_state.colony if a.hasFood)
             rate=compute_rate()
@@ -665,4 +672,5 @@ if run_simulation:
             )
             st.session_state.prev_collected=st.session_state.food_collected
 
-        time.sleep(0.008)
+        # STREAMLIT CLOUD FIX: Give the WebSocket enough time to breathe
+        time.sleep(0.03)
