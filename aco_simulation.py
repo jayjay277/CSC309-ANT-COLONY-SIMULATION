@@ -1,12 +1,6 @@
 import streamlit as st
-import math
-import random
-import time
-from PIL import Image, ImageDraw, ImageFilter
+import streamlit.components.v1 as components
 
-# ─────────────────────────────────────────
-#  PAGE CONFIG
-# ─────────────────────────────────────────
 st.set_page_config(
     page_title="ACO Simulator — EkehFJ",
     layout="wide",
@@ -14,292 +8,56 @@ st.set_page_config(
     menu_items={"Get help": None, "Report a bug": None, "About": None},
 )
 
-# ─────────────────────────────────────────
-#  CSS
-# ─────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap');
 :root {
-  --bg:      #080c14;
-  --surface: #0f1623;
-  --surf2:   #161e2e;
-  --border:  rgba(94,234,212,.15);
-  --accent:  #5eead4;
-  --accent3: #a78bfa;
-  --danger:  #f43f5e;
-  --green:   #22c55e;
-  --amber:   #f59e0b;
-  --muted:   #64748b;
-  --radius:  14px;
+  --bg:#080c14; --surface:#0f1623; --border:rgba(94,234,212,.15); --accent:#5eead4;
 }
-
-.stApp { background: var(--bg) !important; }
-.stDeployButton { display: none !important; }
-#MainMenu       { visibility: hidden !important; }
-footer          { visibility: hidden !important; }
-
+.stApp { background:var(--bg) !important; }
+.stDeployButton { display:none !important; }
+#MainMenu { visibility:hidden !important; }
+footer    { visibility:hidden !important; }
 section[data-testid="stSidebar"] {
-  background: var(--surface) !important;
-  border-right: 1px solid var(--border) !important;
+  background:var(--surface) !important;
+  border-right:1px solid var(--border) !important;
 }
-
 .block-container {
-  padding-top: 3.5rem !important;
-  padding-left: 1.2rem !important;
-  padding-right: 1.2rem !important;
-  max-width: 100% !important;
+  padding-top:2rem !important;
+  padding-left:1.2rem !important;
+  padding-right:1.2rem !important;
+  max-width:100% !important;
 }
-
 h1,h2,h3,h4 { font-family:'Syne',sans-serif !important; color:var(--accent) !important; }
-
 div[data-testid="stButton"] button {
-  width: 100% !important;
-  border-radius: 8px !important;
-  font-family: 'DM Mono', monospace !important;
-  letter-spacing: .1em !important;
-  font-size: .78rem !important;
-  font-weight: 600 !important;
-  transition: all .2s !important;
-  padding: 0.45rem 0.5rem !important;
+  width:100% !important; border-radius:8px !important;
+  font-family:'DM Mono',monospace !important; letter-spacing:.1em !important;
+  font-size:.78rem !important; font-weight:600 !important; padding:0.45rem 0.5rem !important;
 }
-
-.btn-reset button {
-  background: transparent !important;
-  border: 1.5px solid #f43f5e !important;
-  color: #f43f5e !important;
+/* button colour overrides */
+div[data-testid="stButton"]:has(button[kind="secondary"]) button { 
+  background:transparent !important; 
 }
-.btn-reset button:hover {
-  background: rgba(244,63,94,.12) !important;
-  box-shadow: 0 0 14px rgba(244,63,94,.3) !important;
-}
-.btn-run button {
-  background: rgba(34,197,94,.12) !important;
-  border: 1.5px solid #22c55e !important;
-  color: #22c55e !important;
-}
-.btn-run button:hover {
-  background: rgba(34,197,94,.22) !important;
-  box-shadow: 0 0 14px rgba(34,197,94,.35) !important;
-}
-.btn-stop button {
-  background: rgba(245,158,11,.12) !important;
-  border: 1.5px solid #f59e0b !important;
-  color: #f59e0b !important;
-}
-.btn-stop button:hover {
-  background: rgba(245,158,11,.22) !important;
-  box-shadow: 0 0 14px rgba(245,158,11,.35) !important;
-}
-
-[data-testid="stImage"] img {
-  border-radius: 12px !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: 0 16px 48px rgba(0,0,0,.6) !important;
-  width: 100% !important;
-  height: auto !important;
-}
-
-.eff-bar-wrap {
-  background: rgba(15,22,36,.8);
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  height: 7px;
-  overflow: hidden;
-  margin: 4px 0 0;
-}
-.eff-bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  background: linear-gradient(90deg, var(--accent3), var(--accent));
-}
-
-.badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 99px;
-  font-size: .68rem;
-  font-family: 'DM Mono', monospace;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-.badge-run  { background:rgba(34,197,94,.15);  color:#22c55e; border:1px solid #22c55e; }
-.badge-idle { background:rgba(100,116,139,.15); color:var(--muted); border:1px solid var(--muted); }
-
-.stat-panel { display:flex; flex-direction:column; gap:8px; }
-details summary::-webkit-details-marker { display:none; }
-
-@media (max-width:900px) {
-  .block-container { padding-left:.5rem !important; padding-right:.5rem !important; }
-}
+.btn-run  > div > button { background:rgba(34,197,94,.12)  !important; border:1.5px solid #22c55e !important; color:#22c55e !important; }
+.btn-stop > div > button { background:rgba(245,158,11,.12) !important; border:1.5px solid #f59e0b !important; color:#f59e0b !important; }
+.btn-reset> div > button { background:transparent          !important; border:1.5px solid #f43f5e !important; color:#f43f5e !important; }
+.btn-step > div > button { background:rgba(94,234,212,.08) !important; border:1.5px solid #5eead4 !important; color:#5eead4 !important; }
 </style>
 """, unsafe_allow_html=True)
 
+# ── SESSION STATE ────────────────────────────────────────
+if "sim_cmd" not in st.session_state:
+    st.session_state.sim_cmd = "run"   # run | stop | reset | step
 
-# ─────────────────────────────────────────
-#  CANVAS CONSTANTS
-# ─────────────────────────────────────────
-CANVAS_W  = 1100
-CANVAS_H  = 560
-NEST_POS  = (int(CANVAS_W * 0.12), CANVAS_H // 2)
-FOOD_POS  = (int(CANVAS_W * 0.88), CANVAS_H // 2)
-NEST_R    = 40
-FOOD_R    = 36
-MAX_PHERO = 1200   # reduced from 1500 — fewer trail dots = faster rendering
-
-BG_COL    = (8,  12,  20)
-NEST_COL  = (100, 60, 220)
-FOOD_COL  = (240, 60,  80)
-ANT_COL   = (203, 213, 225)
-CARRY_COL = (249, 115,  22)
-TRAIL_COL = (94, 234, 212)
-
-
-# ─────────────────────────────────────────
-#  DRAW ANT — lightweight, no pre-baked sprites
-#  Uses simple ellipses + a direction nub.
-#  ~10× faster than rotating 26×26 RGBA images.
-# ─────────────────────────────────────────
-def draw_ant(draw, x, y, angle, carrying):
-    cx, cy = int(x), int(y)
-    ca, sa = math.cos(angle), math.sin(angle)
-    # body
-    draw.ellipse([cx-5, cy-3, cx+5, cy+3], fill=ANT_COL)
-    # head (points in direction of travel)
-    hx, hy = int(cx + ca * 7), int(cy + sa * 7)
-    draw.ellipse([hx-3, hy-3, hx+3, hy+3], fill=ANT_COL)
-    # abdomen nub behind
-    ax, ay = int(cx - ca * 6), int(cy - sa * 6)
-    draw.ellipse([ax-3, ay-2, ax+3, ay+2], fill=ANT_COL)
-    # legs (3 lines each side — cheap)
-    for i in (-1, 0, 1):
-        off = i * 3
-        lx0 = int(cx - sa * off)
-        ly0 = int(cy + ca * off)
-        draw.line([(lx0, ly0), (int(lx0 - sa * 6 - ca * 2), int(ly0 + ca * 6 - sa * 2))],
-                  fill=(150, 160, 175), width=1)
-        draw.line([(lx0, ly0), (int(lx0 + sa * 6 - ca * 2), int(ly0 - ca * 6 - sa * 2))],
-                  fill=(150, 160, 175), width=1)
-    # food dot
-    if carrying:
-        draw.ellipse([cx-3, cy-3, cx+3, cy+3], fill=CARRY_COL)
-
-
-# ─────────────────────────────────────────
-#  OBSTACLES
-# ─────────────────────────────────────────
-def point_in_obstacle(x, y, obstacles):
-    for o in obstacles:
-        if math.hypot(x-o['x'], y-o['y']) < o['r']:
-            return True
-    return False
-
-def build_obstacles(preset):
-    obs,cx,cy = [], CANVAS_W//2, CANVAS_H//2
-    if preset == "Wall":
-        for i in range(-5,6):
-            obs.append({'x':cx,'y':cy+i*42,'r':20})
-    elif preset == "Maze":
-        for i in range(-3,4):
-            obs.append({'x':cx+i*55,'y':cy-85,'r':22})
-        for i in range(-2,5):
-            obs.append({'x':cx-30+i*55,'y':cy+85,'r':22})
-    elif preset == "Random":
-        rng = random.Random(42)
-        for _ in range(8):
-            obs.append({'x':rng.randint(200,CANVAS_W-200),
-                        'y':rng.randint(70,CANVAS_H-70),
-                        'r':rng.randint(18,36)})
-    return obs
-
-
-# ─────────────────────────────────────────
-#  ANT AGENT
-# ─────────────────────────────────────────
-class Ant:
-    __slots__ = ('x','y','angle','speed','hasFood')
-    def __init__(self):
-        self.x,self.y   = NEST_POS[0]+random.uniform(-8,8), NEST_POS[1]+random.uniform(-8,8)
-        self.angle      = random.uniform(0, math.pi*2)
-        self.speed      = 3.5 + random.uniform(0,1.8)
-        self.hasFood    = False
-
-    def update(self, pheromones, strength, speed_mult, wander, obstacles):
-        nx,ny = NEST_POS; fx,fy = FOOD_POS
-        spd   = self.speed * speed_mult
-        if not self.hasFood and math.hypot(fx-self.x,fy-self.y) < FOOD_R+4:
-            self.hasFood=True; self.angle=math.atan2(ny-self.y,nx-self.x); return True
-        if self.hasFood and math.hypot(nx-self.x,ny-self.y) < NEST_R+4:
-            self.hasFood=False; self.angle=random.uniform(0,math.pi*2); return False
-        if self.hasFood and random.random()<0.18:
-            pheromones.append({'x':self.x,'y':self.y,'life':255*strength})
-            if len(pheromones)>MAX_PHERO: pheromones.pop(0)
-        if self.hasFood:
-            t=math.atan2(ny-self.y,nx-self.x); self.angle+=(t-self.angle)*0.18
-        else:
-            bd,bp=999,None
-            for p in pheromones:
-                d=math.hypot(p['x']-self.x,p['y']-self.y)
-                if d<60 and d<bd: bd,bp=d,p
-            if bp:
-                t=math.atan2(fy-self.y,fx-self.x); self.angle+=(t-self.angle)*0.35
-            else:
-                self.angle+=(random.random()-.5)*wander
-        nx_=self.x+math.cos(self.angle)*spd; ny_=self.y+math.sin(self.angle)*spd
-        if point_in_obstacle(nx_,ny_,obstacles):
-            self.angle+=math.pi*0.5+random.uniform(-.4,.4)
-            nx_=self.x+math.cos(self.angle)*spd; ny_=self.y+math.sin(self.angle)*spd
-        self.x,self.y=nx_,ny_
-        if self.x<5 or self.x>CANVAS_W-5:
-            self.angle=math.pi-self.angle; self.x=max(5,min(CANVAS_W-5,self.x))
-        if self.y<5 or self.y>CANVAS_H-5:
-            self.angle=-self.angle; self.y=max(5,min(CANVAS_H-5,self.y))
-        return None
-
-
-# ─────────────────────────────────────────
-#  SESSION STATE INIT
-# ─────────────────────────────────────────
-def _init(n=80):
-    st.session_state.colony         = [Ant() for _ in range(n)]
-    st.session_state.pheromones     = []
-    st.session_state.food_collected = 0
-    st.session_state.tick           = 0
-    st.session_state.rate_buf       = []
-    st.session_state.trail_heatmap  = {}
-    st.session_state.prev_collected = 0
-    st.session_state.best_rate      = 0
-
-if 'colony' not in st.session_state:
-    st.session_state.num_ants = 80
-    st.session_state.running  = False
-    _init()
-
-for k,v in [('rate_buf',[]),('trail_heatmap',{}),('prev_collected',0),
-            ('best_rate',0),('running',False),('num_ants',80)]:
-    if k not in st.session_state:
-        st.session_state[k] = v
-
-def reset_sim():
-    st.session_state.running = False
-    _init(st.session_state.num_ants)
-
-def start_sim(): st.session_state.running = True
-def stop_sim():  st.session_state.running = False
-
-
-# ─────────────────────────────────────────
-#  SIDEBAR
-# ─────────────────────────────────────────
+# ── SIDEBAR ──────────────────────────────────────────────
 with st.sidebar:
     st.markdown(
         '<div style="background:linear-gradient(135deg,#0f1623,#161e2e);padding:15px 17px;'
         'border-radius:14px;border:1px solid rgba(94,234,212,.15);margin-bottom:12px">'
         '<div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.12em;'
         'margin-bottom:4px;font-family:DM Mono,monospace">Developer</div>'
-        '<div style="font-size:19px;font-weight:800;color:#5eead4;font-family:Syne,sans-serif;'
-        'line-height:1.2">EKEH FAVOUR<br>JUNIOR</div>'
+        '<div style="font-size:19px;font-weight:800;color:#5eead4;font-family:Syne,sans-serif;line-height:1.2">'
+        'EKEH FAVOUR<br>JUNIOR</div>'
         '<div style="margin-top:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:9px;'
         'font-size:11px;color:#94a3b8;font-family:DM Mono,monospace">'
         '<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
@@ -308,69 +66,54 @@ with st.sidebar:
         '<span>DEPT</span><strong style="color:#e2e8f0">CYBERSECURITY</strong></div>'
         '<div style="display:flex;justify-content:space-between">'
         '<span>COURSE</span><strong style="color:#e2e8f0">CSC309</strong></div>'
-        '</div></div>',
-        unsafe_allow_html=True
-    )
+        '</div></div>', unsafe_allow_html=True)
 
-    st.markdown("### Swarm Controls")
-    new_n = st.slider("Colony Size", 10, 200, st.session_state.num_ants, 10)  # cap at 200
-    if new_n != st.session_state.num_ants:
-        st.session_state.num_ants = new_n
-        reset_sim()
+    st.markdown("### ⚙️ Swarm Controls")
+    num_ants  = st.slider("Colony Size",      20, 300,  80, 10)
+    ant_speed = st.slider("Ant Speed",         1,   8,   3,  1)
+    wander    = st.slider("Wander Factor",     1,  60,  25,  1, help="Higher = more random")
 
-    speed_label = st.radio("Simulation Speed",
-                           ["Slow","Normal","Fast","Turbo"], index=1, horizontal=True)
-    speed_map   = {"Slow":0.5,"Normal":1.0,"Fast":1.8,"Turbo":3.0}
-    sim_speed   = speed_map[speed_label]
+    st.markdown("### 🧪 Pheromone Engine")
+    trail_str = st.slider("Trail Strength",   10, 200, 100, 10)
+    evap_rate = st.slider("Evaporation Rate",  1,  30,   8,  1)
 
-    wander    = st.slider("Wander Factor", 0.1, 2.0, 0.7, 0.05,
-                          help="Higher = more random exploration.")
+    st.markdown("### 🗺️ Environment")
+    obs_preset = st.selectbox("Obstacle Preset", ["None","Wall","Maze","Random"])
+    obs_id     = {"None":0,"Wall":1,"Maze":2,"Random":3}[obs_preset]
 
-    st.markdown("### Pheromone Engine")
-    strength  = st.slider("Trail Strength",   0.1, 1.0, 0.75, 0.05)
-    evap_rate = st.slider("Evaporation Rate", 0.005, 0.25, 0.018, 0.005)
-
-    st.markdown("### Visualisation")
+    st.markdown("### 🎨 Visualisation")
+    show_trails  = st.toggle("Show Pheromone Trails", value=True)
     show_heatmap = st.toggle("Heat-map Overlay",      value=False)
-    show_trails  = st.toggle("Show Pheromone Trails",  value=True)
-    trail_glow   = st.toggle("Trail Glow Effect",      value=False)
-
-    st.markdown("### Obstacles")
-    obs_mode = st.selectbox("Obstacle Preset", ["None","Wall","Maze","Random"])
+    trail_glow   = st.toggle("Trail Glow Effect",     value=False)
 
     st.markdown("---")
-    col_r, col_run, col_s = st.columns(3)
 
-    with col_r:
-        st.markdown('<div class="btn-reset">', unsafe_allow_html=True)
-        st.button("↺ RESET", on_click=reset_sim, use_container_width=True)
+    # ── CONTROL BUTTONS (Streamlit-native, always visible) ──
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="btn-run">', unsafe_allow_html=True)
+        if st.button("▶ RUN", key="btn_run", use_container_width=True):
+            st.session_state.sim_cmd = "run"
+        st.markdown('</div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown('<div class="btn-stop">', unsafe_allow_html=True)
+        if st.button("⏸ STOP", key="btn_stop", use_container_width=True):
+            st.session_state.sim_cmd = "stop"
         st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_run:
-        if not st.session_state.running:
-            st.markdown('<div class="btn-run">', unsafe_allow_html=True)
-            st.button("▶ RUN", on_click=start_sim, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="btn-stop">', unsafe_allow_html=True)
-            st.button("⏸ STOP", on_click=stop_sim, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    with col_s:
-        def step_sim():
-            if not st.session_state.running:
-                obs = build_obstacles(obs_mode)
-                for ant in st.session_state.colony:
-                    r = ant.update(st.session_state.pheromones,
-                                   strength, sim_speed, wander, obs)
-                    if r is False:
-                        st.session_state.food_collected += 1
-                st.session_state.tick += 1
+    c3, c4 = st.columns(2)
+    with c3:
+        st.markdown('<div class="btn-step">', unsafe_allow_html=True)
+        if st.button("⏭ STEP", key="btn_step", use_container_width=True):
+            st.session_state.sim_cmd = "step"
+        st.markdown('</div>', unsafe_allow_html=True)
+    with c4:
         st.markdown('<div class="btn-reset">', unsafe_allow_html=True)
-        st.button("⏭ STEP", on_click=step_sim, use_container_width=True)
+        if st.button("↺ RESET", key="btn_reset", use_container_width=True):
+            st.session_state.sim_cmd = "reset"
         st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
     st.markdown(
         '<details style="background:#161e2e;border:1px solid rgba(94,234,212,.15);'
         'border-radius:12px;padding:4px 14px">'
@@ -381,230 +124,351 @@ with st.sidebar:
         '1. Agents spawn at the nest and explore stochastically.<br>'
         '2. Upon finding food, they return depositing pheromone vectors.<br>'
         '3. Shorter paths accumulate pheromone faster.<br>'
-        '4. Evaporation prunes weak paths &mdash; emergent optimal routing.<br><br>'
-        '<strong style="color:#e2e8f0">Extensions:</strong><br>'
-        '&bull; Obstacle avoidance &bull; Delivery rate tracking<br>'
-        '&bull; Heat-map overlay &bull; Wander factor tuning<br>'
-        '&bull; Step-through mode &bull; Speed presets'
-        '</div></details>',
-        unsafe_allow_html=True
-    )
+        '4. Evaporation prunes weak paths — emergent optimal routing.'
+        '</div></details>', unsafe_allow_html=True)
 
-current_obstacles = build_obstacles(obs_mode)
-run_simulation    = st.session_state.running
-
-
-# ─────────────────────────────────────────
-#  PHYSICS TICK
-#  Reduced to 3 steps per frame (was 8).
-#  Fewer steps = lighter CPU load per rerun,
-#  so the canvas actually refreshes visibly.
-# ─────────────────────────────────────────
-STEPS_PER_FRAME = 3   # ← was 8; keep low for cloud
-
-if run_simulation:
-    now = time.time()
-    for _ in range(STEPS_PER_FRAME):
-        st.session_state.tick += 1
-        # evaporation
-        alive = []
-        for p in st.session_state.pheromones:
-            p['life'] -= evap_rate * 60
-            if p['life'] > 0: alive.append(p)
-        st.session_state.pheromones = alive
-        # agent updates
-        for ant in st.session_state.colony:
-            result = ant.update(st.session_state.pheromones,
-                                strength, sim_speed, wander, current_obstacles)
-            if result is False:
-                st.session_state.food_collected += 1
-                st.session_state.rate_buf.append(now)
-            if show_heatmap:
-                cell=(int(ant.x)//8, int(ant.y)//8)
-                st.session_state.trail_heatmap[cell] = \
-                    st.session_state.trail_heatmap.get(cell,0) + 1
-
-
-# ─────────────────────────────────────────
-#  DRAW FRAME
-#  Ants are now drawn with draw_ant() —
-#  no PIL image-paste / alpha compositing.
-# ─────────────────────────────────────────
-def draw_frame():
-    img  = Image.new("RGB", (CANVAS_W,CANVAS_H), BG_COL)
-    draw = ImageDraw.Draw(img)
-
-    # grid
-    for gx in range(0,CANVAS_W,60):
-        draw.line([(gx,0),(gx,CANVAS_H)], fill=(18,24,36), width=1)
-    for gy in range(0,CANVAS_H,60):
-        draw.line([(0,gy),(CANVAS_W,gy)], fill=(18,24,36), width=1)
-
-    # heatmap
-    if show_heatmap and st.session_state.trail_heatmap:
-        hm=st.session_state.trail_heatmap; mx=max(hm.values()) or 1
-        for (gx,gy),val in hm.items():
-            t=min(val/mx,1.0)
-            draw.rectangle([gx*8,gy*8,gx*8+8,gy*8+8],
-                           fill=(int(20+t*120),int(t*50),int(t*80)))
-
-    # pheromone trails
-    if show_trails:
-        if trail_glow:
-            tl=Image.new("RGB",(CANVAS_W,CANVAS_H),BG_COL); td=ImageDraw.Draw(tl)
-            for p in st.session_state.pheromones:
-                t=max(0,min(1,p['life']/255))
-                td.rectangle([p['x']-1,p['y']-1,p['x']+2,p['y']+2],
-                             fill=(int(TRAIL_COL[0]*t),int(TRAIL_COL[1]*t),int(TRAIL_COL[2]*t)))
-            blended=Image.blend(img,tl.filter(ImageFilter.GaussianBlur(2)),alpha=0.7)
-            img=blended; draw=ImageDraw.Draw(img)
-        else:
-            for p in st.session_state.pheromones:
-                t=max(0,min(1,p['life']/255))
-                draw.rectangle([p['x']-1,p['y']-1,p['x']+2,p['y']+2],
-                               fill=(int(TRAIL_COL[0]*t),int(TRAIL_COL[1]*t),int(TRAIL_COL[2]*t)))
-
-    # obstacles
-    for o in current_obstacles:
-        draw.ellipse([o['x']-o['r'],o['y']-o['r'],o['x']+o['r'],o['y']+o['r']],
-                     fill=(28,35,52), outline=(60,80,110), width=2)
-
-    # nest rings + fill
-    for rh in (58,46,34):
-        draw.ellipse([NEST_POS[0]-rh,NEST_POS[1]-rh,NEST_POS[0]+rh,NEST_POS[1]+rh],
-                     outline=NEST_COL, width=1)
-    draw.ellipse([NEST_POS[0]-NEST_R,NEST_POS[1]-NEST_R,
-                  NEST_POS[0]+NEST_R,NEST_POS[1]+NEST_R], fill=NEST_COL)
-    draw.text((NEST_POS[0]-7,NEST_POS[1]-7), "N", fill=(200,190,255))
-
-    # food rings + fill
-    for rh in (52,40,28):
-        draw.ellipse([FOOD_POS[0]-rh,FOOD_POS[1]-rh,FOOD_POS[0]+rh,FOOD_POS[1]+rh],
-                     outline=FOOD_COL, width=1)
-    draw.ellipse([FOOD_POS[0]-FOOD_R,FOOD_POS[1]-FOOD_R,
-                  FOOD_POS[0]+FOOD_R,FOOD_POS[1]+FOOD_R], fill=FOOD_COL)
-    draw.text((FOOD_POS[0]-5,FOOD_POS[1]-7), "F", fill=(255,220,200))
-
-    # ants — lightweight vector drawing, no sprite paste
-    for ant in st.session_state.colony:
-        if 5 < ant.x < CANVAS_W-5 and 5 < ant.y < CANVAS_H-5:
-            draw_ant(draw, ant.x, ant.y, ant.angle, ant.hasFood)
-
-    # legend
-    lx,ly = CANVAS_W-160, CANVAS_H-70
-    draw.rectangle([lx-8,ly-8,CANVAS_W-6,CANVAS_H-6], fill=(12,18,30), outline=(40,55,80))
-    draw.ellipse([lx,ly+2,lx+12,ly+14],  fill=NEST_COL)
-    draw.text(  (lx+16,ly+2),  "Nest",  fill=(180,170,240))
-    draw.ellipse([lx,ly+20,lx+12,ly+32], fill=FOOD_COL)
-    draw.text(  (lx+16,ly+20), "Food",  fill=(255,200,190))
-    draw.rectangle([lx,ly+38,lx+12,ly+44], fill=TRAIL_COL)
-    draw.text(  (lx+16,ly+38), "Trail", fill=(160,240,220))
-
-    # status dot
-    status_col = (34,197,94) if run_simulation else (100,116,139)
-    draw.ellipse([8,8,18,18], fill=status_col)
-
-    return img
-
-
-# ─────────────────────────────────────────
-#  STATS
-# ─────────────────────────────────────────
-def compute_rate():
-    now=time.time()
-    st.session_state.rate_buf=[t for t in st.session_state.rate_buf if now-t<60]
-    return len(st.session_state.rate_buf)
-
-def render_stats(food, colony_sz, carrying, rate, best_rate, trails, ticks, eff):
-    delta  = food - st.session_state.prev_collected
-    d_html = (f'<span style="color:#22c55e;font-size:.7rem"> +{delta}</span>' if delta else "")
-    rs     = f'<span style="font-size:.65rem;color:#64748b"> best {best_rate}</span>'
-    os_    = f'<span style="font-size:.65rem;color:#64748b"> / {colony_sz}</span>'
-    eff_c  = min(100,eff)
-    spd_col= {"Slow":"#64748b","Normal":"#5eead4","Fast":"#f59e0b","Turbo":"#f43f5e"}
-    sc     = spd_col.get(speed_label,"#5eead4")
-    run_state="RUNNING" if run_simulation else "PAUSED"
-    run_col  ="#22c55e"  if run_simulation else "#64748b"
-
-    def card(lbl,val,sub=""):
-        return (
-            '<div style="background:#161e2e;border:1px solid rgba(94,234,212,.15);'
-            f'border-radius:14px;padding:11px 15px">'
-            f'<div style="font-size:.6rem;color:#64748b;text-transform:uppercase;'
-            f'letter-spacing:.07em;font-family:DM Mono,monospace;margin-bottom:4px">{lbl}</div>'
-            f'<div style="font-size:1.3rem;color:#5eead4;font-family:DM Mono,monospace;'
-            f'line-height:1.1">{val}{sub}</div></div>'
-        )
-
-    return (
-        '<div class="stat-panel">'
-        + f'<div style="background:#161e2e;border:1px solid rgba(94,234,212,.15);border-radius:14px;'
-          f'padding:10px 15px;display:flex;justify-content:space-between;align-items:center">'
-          f'<span style="font-size:.6rem;color:#64748b;text-transform:uppercase;'
-          f'letter-spacing:.07em;font-family:DM Mono,monospace">Status</span>'
-          f'<span style="font-size:.75rem;font-family:DM Mono,monospace;color:{run_col};'
-          f'font-weight:600">{run_state}</span></div>'
-        + f'<div style="background:#161e2e;border:1px solid rgba(94,234,212,.15);border-radius:14px;'
-          f'padding:10px 15px;display:flex;justify-content:space-between;align-items:center">'
-          f'<span style="font-size:.6rem;color:#64748b;text-transform:uppercase;'
-          f'letter-spacing:.07em;font-family:DM Mono,monospace">Speed</span>'
-          f'<span style="font-size:.75rem;font-family:DM Mono,monospace;color:{sc}">{speed_label}</span></div>'
-        + card("Biomass Harvested", food, d_html)
-        + card("Payload Carriers",  carrying, os_)
-        + card("Rate  units/min",   rate, rs)
-        + card("Active Trails",     trails)
-        + card("Sim Ticks",         ticks)
-        + '<div style="background:#161e2e;border:1px solid rgba(94,234,212,.15);'
-          'border-radius:14px;padding:11px 15px">'
-          '<div style="font-size:.6rem;color:#64748b;text-transform:uppercase;'
-          'letter-spacing:.07em;font-family:DM Mono,monospace;margin-bottom:6px">'
-          f'Carrier Efficiency <span style="color:#5eead4">{eff_c}%</span></div>'
-          '<div class="eff-bar-wrap">'
-          f'<div class="eff-bar-fill" style="width:{eff_c}%"></div>'
-          '</div></div>'
-        '</div>'
-    )
-
-
-# ─────────────────────────────────────────
-#  MAIN LAYOUT
-# ─────────────────────────────────────────
-badge = ('<span class="badge badge-run">&#9679; RUNNING</span>'
-         if run_simulation else
-         '<span class="badge badge-idle">&#9675; IDLE</span>')
+# ── PAGE HEADER ──────────────────────────────────────────
+cmd = st.session_state.sim_cmd
+badge_text  = "● RUNNING" if cmd != "stop" else "○ PAUSED"
+badge_color = "#22c55e"   if cmd != "stop" else "#64748b"
+badge_bg    = "rgba(34,197,94,.15)" if cmd != "stop" else "rgba(100,116,139,.15)"
+badge_bdr   = "#22c55e"   if cmd != "stop" else "#64748b"
 
 st.markdown(
-    f'<div style="margin-bottom:5px">'
+    f'<div style="margin-bottom:8px">'
     f'<span style="font-family:Syne,sans-serif;font-size:1.65rem;font-weight:800;color:#5eead4">'
-    f'Ant Colony Optimisation</span>&nbsp;&nbsp;{badge}</div>'
+    f'Ant Colony Optimisation</span>'
+    f'&nbsp;&nbsp;<span style="display:inline-block;padding:2px 10px;border-radius:99px;'
+    f'font-size:.68rem;font-family:DM Mono,monospace;letter-spacing:.08em;text-transform:uppercase;'
+    f'background:{badge_bg};color:{badge_color};border:1px solid {badge_bdr}">{badge_text}</span>'
+    f'</div>'
     f'<div style="font-size:.75rem;color:#64748b;font-family:DM Mono,monospace;'
-    f'letter-spacing:.04em;margin-bottom:10px">Swarm intelligence foraging simulator '
-    f'&middot; CSC309 &middot; Speed: <span style="color:#5eead4">{speed_label}</span></div>',
+    f'letter-spacing:.04em;margin-bottom:10px">'
+    f'Swarm intelligence foraging simulator · CSC309 · 60 fps client-side canvas</div>',
     unsafe_allow_html=True
 )
 
-canvas_col, stats_col = st.columns([5,2])
-with canvas_col:
-    st.image(draw_frame(), use_container_width=True, output_format="JPEG")
+# ── cmd is consumed once — after "step" or "reset" revert to run/stop ──
+# We pass cmd into JS; JS uses it once on load to set initial state.
+# "reset" restarts the sim; "step" does one tick then pauses.
+js_autorun  = "false" if cmd == "stop"  else "true"
+js_do_reset = "true"  if cmd == "reset" else "false"
+js_do_step  = "true"  if cmd == "step"  else "false"
 
-carrying = sum(1 for a in st.session_state.colony if a.hasFood)
-rate     = compute_rate()
-if rate > st.session_state.best_rate:
-    st.session_state.best_rate = rate
-eff = min(100, int(carrying / max(1,len(st.session_state.colony)) * 100))
+# After a one-shot command, revert session state so next normal rerun is neutral
+if cmd in ("reset", "step"):
+    st.session_state.sim_cmd = "stop" if cmd == "step" else "run"
 
-with stats_col:
-    st.markdown(
-        render_stats(st.session_state.food_collected, len(st.session_state.colony),
-                     carrying, rate, st.session_state.best_rate,
-                     len(st.session_state.pheromones), st.session_state.tick, eff),
-        unsafe_allow_html=True
-    )
+# ── HTML + JS ────────────────────────────────────────────
+html_code = f"""<!DOCTYPE html>
+<html>
+<head>
+<style>
+* {{ box-sizing:border-box; margin:0; padding:0; }}
+body {{
+  background:#080c14;
+  font-family:'DM Mono',monospace;
+  display:flex; flex-direction:column; align-items:center; overflow:hidden;
+}}
+#wrap {{
+  display:flex; gap:14px; width:100%; padding:8px 10px 6px; align-items:flex-start;
+}}
+canvas {{
+  border-radius:12px;
+  border:1px solid rgba(94,234,212,.18);
+  box-shadow:0 12px 40px rgba(0,0,0,.7);
+  flex-shrink:0;
+}}
+#stats {{
+  flex:1; display:flex; flex-direction:column; gap:8px;
+  min-width:155px; max-width:205px;
+}}
+.card {{
+  background:#161e2e; border:1px solid rgba(94,234,212,.15);
+  border-radius:14px; padding:11px 15px;
+}}
+.clabel {{
+  font-size:9px; color:#64748b; text-transform:uppercase;
+  letter-spacing:.07em; margin-bottom:4px;
+}}
+.cval {{ font-size:1.2rem; color:#5eead4; line-height:1.1; }}
+.csub {{ font-size:10px; color:#64748b; }}
+.srow {{
+  display:flex; justify-content:space-between; align-items:center;
+  background:#161e2e; border:1px solid rgba(94,234,212,.15);
+  border-radius:14px; padding:10px 15px;
+  font-size:9px; color:#64748b; text-transform:uppercase; letter-spacing:.07em;
+}}
+#eff-wrap {{
+  background:rgba(15,22,36,.8); border:1px solid rgba(94,234,212,.15);
+  border-radius:99px; height:7px; overflow:hidden; margin-top:6px;
+}}
+#eff-bar {{
+  height:100%; border-radius:99px;
+  background:linear-gradient(90deg,#a78bfa,#5eead4);
+  width:0%; transition:width .3s;
+}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="stats">
+    <div class="srow">
+      <span>Status</span>
+      <span id="s-status" style="font-size:11px;font-weight:600;color:#22c55e">RUNNING</span>
+    </div>
+    <div class="card"><div class="clabel">Biomass Harvested</div>
+      <div class="cval" id="s-food">0</div></div>
+    <div class="card"><div class="clabel">Payload Carriers</div>
+      <div class="cval"><span id="s-carry">0</span><span class="csub"> / {num_ants}</span></div></div>
+    <div class="card"><div class="clabel">Rate (units / min)</div>
+      <div class="cval"><span id="s-rate">0</span>
+      <span class="csub" id="s-best"> best 0</span></div></div>
+    <div class="card"><div class="clabel">Active Trails</div>
+      <div class="cval" id="s-trails">0</div></div>
+    <div class="card"><div class="clabel">Sim Ticks</div>
+      <div class="cval" id="s-ticks">0</div></div>
+    <div class="card">
+      <div class="clabel">Carrier Efficiency
+        <span id="s-eff-pct" style="color:#5eead4"> 0%</span></div>
+      <div id="eff-wrap"><div id="eff-bar"></div></div>
+    </div>
+  </div>
+</div>
 
-st.session_state.prev_collected = st.session_state.food_collected
+<script>
+const CFG = {{
+  numAnts:    {num_ants},
+  antSpeed:   {ant_speed},
+  wander:     {wander} / 100,
+  trailStr:   {trail_str},
+  evapRate:   {evap_rate},
+  obsPreset:  {obs_id},
+  showTrails: {'true' if show_trails else 'false'},
+  showHeat:   {'true' if show_heatmap else 'false'},
+  trailGlow:  {'true' if trail_glow else 'false'},
+  autoRun:    {js_autorun},
+  doReset:    {js_do_reset},
+  doStep:     {js_do_step},
+}};
 
-# ── Drive animation ──
-# NO time.sleep() before rerun — on Streamlit Cloud the
-# rerun round-trip itself provides the frame-rate throttle.
-if run_simulation:
-    st.rerun()
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let NEST, FOOD;
+const NEST_R=40, FOOD_R=36, MAX_PHERO=1200;
+
+function sizeCanvas() {{
+  const wrap=document.getElementById('wrap');
+  const sw=document.getElementById('stats').offsetWidth||200;
+  const W=Math.max(360, wrap.clientWidth - sw - 24);
+  const H=Math.round(W*0.52);
+  canvas.width=W; canvas.height=H;
+  NEST={{x:Math.round(W*0.12), y:Math.round(H/2)}};
+  FOOD={{x:Math.round(W*0.88), y:Math.round(H/2)}};
+  buildObs();
+}}
+
+let colony=[], pheromones=[], obstacles=[], heatmap={{}};
+let foodCollected=0, tick=0, simRunning=CFG.autoRun;
+let rateBuf=[], bestRate=0;
+
+function rnd(a,b){{ return a+Math.random()*(b-a); }}
+
+function buildObs() {{
+  obstacles=[];
+  const cx=canvas.width/2, cy=canvas.height/2;
+  if(CFG.obsPreset===1){{
+    for(let i=-5;i<=5;i++) obstacles.push({{x:cx,y:cy+i*38,r:18}});
+  }}else if(CFG.obsPreset===2){{
+    for(let i=-3;i<=3;i++) obstacles.push({{x:cx+i*50,y:cy-75,r:20}});
+    for(let i=-2;i<=4;i++) obstacles.push({{x:cx-25+i*50,y:cy+75,r:20}});
+  }}else if(CFG.obsPreset===3){{
+    for(let i=0;i<8;i++){{
+      const s=Math.sin(i*127.1)*43758.5453, t=Math.sin(i*311.7)*43758.5453;
+      obstacles.push({{x:180+(Math.abs(s)%(canvas.width-360)),
+                       y:60+(Math.abs(t)%(canvas.height-120)),
+                       r:18+Math.abs(Math.sin(i)*20)}});
+    }}
+  }}
+}}
+
+function inObs(x,y){{
+  for(const o of obstacles) if(Math.hypot(x-o.x,y-o.y)<o.r) return true;
+  return false;
+}}
+
+function makeAnt(){{
+  return {{x:NEST.x+rnd(-8,8),y:NEST.y+rnd(-8,8),
+           angle:rnd(0,Math.PI*2),speed:CFG.antSpeed+rnd(0,1.5),hasFood:false}};
+}}
+
+function initSim(){{
+  colony=Array.from({{length:CFG.numAnts}},makeAnt);
+  pheromones=[]; heatmap={{}};
+  foodCollected=0; tick=0; rateBuf=[]; bestRate=0;
+}}
+
+function stepOnce(){{
+  tick++;
+  pheromones=pheromones.filter(p=>{{p.life-=CFG.evapRate;return p.life>0;}});
+  const now=Date.now();
+  for(const ant of colony){{
+    const dxF=FOOD.x-ant.x,dyF=FOOD.y-ant.y;
+    const dxN=NEST.x-ant.x,dyN=NEST.y-ant.y;
+    if(!ant.hasFood&&Math.hypot(dxF,dyF)<FOOD_R+4){{
+      ant.hasFood=true;ant.angle=Math.atan2(dyN,dxN);continue;
+    }}
+    if(ant.hasFood&&Math.hypot(dxN,dyN)<NEST_R+4){{
+      ant.hasFood=false;ant.angle=rnd(0,Math.PI*2);
+      foodCollected++;rateBuf.push(now);continue;
+    }}
+    if(ant.hasFood){{
+      if(Math.random()<0.18){{
+        pheromones.push({{x:ant.x,y:ant.y,life:CFG.trailStr}});
+        if(pheromones.length>MAX_PHERO) pheromones.shift();
+      }}
+      ant.angle+=(Math.atan2(dyN,dxN)-ant.angle)*0.18;
+    }}else{{
+      let bd=999,bp=null;
+      for(const p of pheromones){{
+        const d=Math.hypot(p.x-ant.x,p.y-ant.y);
+        if(d<60&&d<bd){{bd=d;bp=p;}}
+      }}
+      if(bp) ant.angle+=(Math.atan2(FOOD.y-ant.y,FOOD.x-ant.x)-ant.angle)*0.35;
+      else   ant.angle+=(Math.random()-.5)*CFG.wander*2;
+    }}
+    let nx=ant.x+Math.cos(ant.angle)*ant.speed;
+    let ny=ant.y+Math.sin(ant.angle)*ant.speed;
+    if(inObs(nx,ny)){{
+      ant.angle+=Math.PI*0.5+rnd(-.4,.4);
+      nx=ant.x+Math.cos(ant.angle)*ant.speed;
+      ny=ant.y+Math.sin(ant.angle)*ant.speed;
+    }}
+    ant.x=nx;ant.y=ny;
+    if(ant.x<4||ant.x>canvas.width-4) {{ant.angle=Math.PI-ant.angle;ant.x=Math.max(4,Math.min(canvas.width-4,ant.x));}}
+    if(ant.y<4||ant.y>canvas.height-4){{ant.angle=-ant.angle;        ant.y=Math.max(4,Math.min(canvas.height-4,ant.y));}}
+    if(CFG.showHeat){{const k=(ant.x>>4)+','+(ant.y>>4);heatmap[k]=(heatmap[k]||0)+1;}}
+  }}
+}}
+
+function drawFrame(){{
+  const W=canvas.width,H=canvas.height;
+  ctx.fillStyle='#080c14';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(18,24,36,1)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=55){{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}}
+  for(let y=0;y<H;y+=55){{ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}}
+  if(CFG.showHeat){{
+    let mx=1;for(const v of Object.values(heatmap))if(v>mx)mx=v;
+    for(const[k,v]of Object.entries(heatmap)){{
+      const[gx,gy]=k.split(',').map(Number),t=Math.min(v/mx,1);
+      ctx.fillStyle=`rgb(${{Math.round(20+t*120)}},${{Math.round(t*50)}},${{Math.round(t*80)}})`;
+      ctx.fillRect(gx*16,gy*16,16,16);
+    }}
+  }}
+  if(CFG.showTrails){{
+    if(CFG.trailGlow)ctx.filter='blur(2px)';
+    for(const p of pheromones){{
+      const t=Math.max(0,Math.min(1,p.life/CFG.trailStr));
+      ctx.fillStyle=`rgba(94,234,212,${{(t*.85).toFixed(3)}})`;
+      ctx.fillRect(p.x-1,p.y-1,3,3);
+    }}
+    if(CFG.trailGlow)ctx.filter='none';
+  }}
+  for(const o of obstacles){{
+    ctx.fillStyle='#1c2334';ctx.strokeStyle='#3c5070';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();ctx.stroke();
+  }}
+  for(const r of[58,46,34]){{
+    ctx.strokeStyle='rgba(100,60,220,0.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(NEST.x,NEST.y,r,0,Math.PI*2);ctx.stroke();
+  }}
+  ctx.fillStyle='rgb(100,60,220)';
+  ctx.beginPath();ctx.arc(NEST.x,NEST.y,NEST_R,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(200,190,255,.9)';ctx.font='bold 13px DM Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('N',NEST.x,NEST.y);
+  for(const r of[52,40,28]){{
+    ctx.strokeStyle='rgba(240,60,80,0.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(FOOD.x,FOOD.y,r,0,Math.PI*2);ctx.stroke();
+  }}
+  ctx.fillStyle='rgb(240,60,80)';
+  ctx.beginPath();ctx.arc(FOOD.x,FOOD.y,FOOD_R,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,220,200,.9)';ctx.font='bold 13px DM Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('F',FOOD.x,FOOD.y);
+  for(const ant of colony){{
+    const ca=Math.cos(ant.angle),sa=Math.sin(ant.angle);
+    ctx.fillStyle=ant.hasFood?'#f97316':'#cbd5e1';
+    ctx.beginPath();ctx.ellipse(ant.x-ca*6,ant.y-sa*6,3,2,ant.angle,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(ant.x,ant.y,5,3,ant.angle,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(ant.x+ca*7,ant.y+sa*7,3,3,ant.angle,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1;
+    for(let i=-1;i<=1;i++){{
+      const lx=ant.x-sa*(i*4),ly=ant.y+ca*(i*4);
+      ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(lx-sa*7-ca*3,ly+ca*7-sa*3);
+      ctx.moveTo(lx,ly);ctx.lineTo(lx+sa*7-ca*3,ly-ca*7-sa*3);ctx.stroke();
+    }}
+    if(ant.hasFood){{ctx.fillStyle='#fb923c';ctx.beginPath();ctx.arc(ant.x,ant.y,3,0,Math.PI*2);ctx.fill();}}
+  }}
+  const lx=W-150,ly=H-65;
+  ctx.fillStyle='rgba(12,18,30,.9)';ctx.strokeStyle='rgba(40,55,80,1)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(lx-8,ly-8,148,66,8);ctx.fill();ctx.stroke();
+  ctx.fillStyle='rgb(100,60,220)';ctx.beginPath();ctx.arc(lx+6,ly+8,6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(180,170,240,.9)';ctx.font='11px DM Mono,monospace';ctx.textAlign='left';ctx.textBaseline='middle';
+  ctx.fillText('Nest',lx+16,ly+8);
+  ctx.fillStyle='rgb(240,60,80)';ctx.beginPath();ctx.arc(lx+6,ly+26,6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,200,190,.9)';ctx.fillText('Food',lx+16,ly+26);
+  ctx.fillStyle='rgba(94,234,212,.8)';ctx.fillRect(lx,ly+42,12,5);
+  ctx.fillStyle='rgba(160,240,220,.9)';ctx.fillText('Trail',lx+16,ly+44);
+  ctx.fillStyle=simRunning?'#22c55e':'#64748b';
+  ctx.beginPath();ctx.arc(10,10,5,0,Math.PI*2);ctx.fill();
+}}
+
+let frameCount=0;
+function updateStats(){{
+  const now=Date.now();
+  rateBuf=rateBuf.filter(t=>now-t<60000);
+  const rate=rateBuf.length;
+  if(rate>bestRate)bestRate=rate;
+  const carrying=colony.filter(a=>a.hasFood).length;
+  const eff=Math.round(carrying/Math.max(1,colony.length)*100);
+  document.getElementById('s-food').textContent   =foodCollected;
+  document.getElementById('s-carry').textContent  =carrying;
+  document.getElementById('s-rate').textContent   =rate;
+  document.getElementById('s-best').textContent   =' best '+bestRate;
+  document.getElementById('s-trails').textContent =pheromones.length;
+  document.getElementById('s-ticks').textContent  =tick;
+  document.getElementById('s-eff-pct').textContent=' '+eff+'%';
+  document.getElementById('eff-bar').style.width  =eff+'%';
+  const el=document.getElementById('s-status');
+  el.textContent=simRunning?'RUNNING':'PAUSED';
+  el.style.color=simRunning?'#22c55e':'#64748b';
+}}
+
+function loop(){{
+  if(simRunning) stepOnce();
+  drawFrame();
+  frameCount++;
+  if(frameCount%6===0) updateStats();
+  requestAnimationFrame(loop);
+}}
+
+// ── BOOT — honour one-shot commands from Python ──────────
+sizeCanvas();
+if(CFG.doReset){{
+  initSim();
+}} else {{
+  initSim();   // always init fresh on page/rerun load
+}}
+if(CFG.doStep){{
+  simRunning=false;
+  stepOnce();
+}}
+simRunning = CFG.doReset ? true : (CFG.doStep ? false : CFG.autoRun);
+updateStats();
+loop();
+</script>
+</body>
+</html>
+"""
+
+components.html(html_code, height=660, scrolling=False)
